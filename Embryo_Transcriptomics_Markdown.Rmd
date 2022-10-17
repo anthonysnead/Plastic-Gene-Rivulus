@@ -550,17 +550,16 @@ Data.filtered <- mydata %>%
 rownames(Data.filtered) <- gsub("gene-", "", rownames(Data.filtered))
 # Rename the rows so that they are just the gene name.
 
-
-Sample.Data <- Sample.Data[ order(row.names(Sample.Data)), ] %>%
+Sample.Data <- Sample.Data[ order(names(Data.filtered)), ] %>%
   # Order the rows to match the filtered data %>%
   dplyr::mutate(Treatment = as.factor(Treatment))
   # Convert treatment to a factor for DESeq
 
 Transformed.DESeq.Matrix <- DESeq2::DESeqDataSetFromMatrix(countData = Data.filtered, colData = Sample.Data, design = ~Treatment) %>%
   # Setup DESeq data from count matrix.
-  DESeq2::varianceStabilizingTransformation(., blind = T) %>%
+  DESeq2::varianceStabilizingTransformation(., blind = TRUE) %>%
   # Run Transformation blind to the experimental design.
-  assay(.)
+  SummarizedExperiment::assay(.)
   # Extract the transformed data as a matrix.
 
 DGE.Data <- edgeR::DGEList(counts = Data.filtered, group = as.factor(colnames(Data.filtered))) %>%
@@ -1012,39 +1011,6 @@ DT::datatable(Fishers.gost.table,
 # Make the interactive table
 
 DT::datatable(Fishers.GO.Counts,
-                              extensions = c('KeyTable', 'FixedHeader'),
-                              filter = 'top',
-                              options = list(keys = TRUE,
-                                             searchHighlight = TRUE,
-                                             pageLength = 20))
-# Make the interactive table
-```
-### Ranked GO enrichment
-
-Here we complete a ranked enrichment analysis for GO terms. We create interactive tables and plots to help with data exploration. The queries are in the same order as the data list. Therefore, query 1 represents PreCold versus PreWarm up regulated genes.
-
-```{r - Go Ranked Test}
-Ranked.gost.res <- gost(GO.input.list, organism = "kmarmoratus", correction_method = "fdr", exclude_iea = FALSE, sources = c("GO:BP", "GO:CC", "GO:MF"), ordered_query = TRUE, domain_scope = "annotated")
-# We run gost on all the GO libraries. We use a list of the data which is differentiated by the query column. The ordered_query = TRUE means that we run a ranked test.
-
-gostplot(Ranked.gost.res, interactive = TRUE, capped = TRUE) 
-# Here we make an interactive Manhattan plot.
-
-Ranked.gost.table <- as_tibble(Ranked.gost.res$result) %>%  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% dplyr::mutate(query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW")) %>% rename(Comparision = query)
-# Here we convert the results into a tibble and swap query for actual comparison names.
-
-Ranked.GO.Counts <- Ranked.gost.table %>% group_by(Comparision, Direction, source) %>% tally(.)
-# We count the various GO terms in each category.
-
-DT::datatable(Ranked.gost.table,
-                              extensions = c('KeyTable', 'FixedHeader'),
-                              filter = 'top',
-                              options = list(keys = TRUE,
-                                             searchHighlight = TRUE,
-                                             pageLength = 20))
-# Make the interactive table
-
-DT::datatable(Ranked.GO.Counts,
                               extensions = c('KeyTable', 'FixedHeader'),
                               filter = 'top',
                               options = list(keys = TRUE,

@@ -95,7 +95,7 @@ rownames(Data.filtered) <- gsub("gene-", "", rownames(Data.filtered))
 # Rename the rows so that they are just the gene name.
 
 
-Sample.Data <- Sample.Data[ order(row.names(Sample.Data)), ] %>%
+Sample.Data <- Sample.Data[ order(names(Data.filtered)), ] %>%
   # Order the rows to match the filtered data %>%
   dplyr::mutate(Treatment = as.factor(Treatment))
   # Convert treatment to a factor for DESeq
