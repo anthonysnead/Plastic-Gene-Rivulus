@@ -1,0 +1,1054 @@
+---
+title: "<center> Embryo Transcriptomics <center>"
+author: "<center> Anthony Snead <center><br>"
+date: "<center> _`r Sys.Date()`_ <center>"
+output:
+  html_document:
+    code_folding: show
+    df_print: paged
+    theme: yeti
+    highlight: tango
+    toc: yes
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    number_sections: true
+  pdf_document:
+    fig_caption: yes
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Data Processing
+
+The first section of this document is completed in the terminal. It uses a bash syntax to both retrieve data and format for importing into R.
+
+***
+
+## Sub-Sampling
+
+Here we sub-sample the trimmed reads such that each set of paired reads did not exceed 20 million.
+
+### Data tables
+
+Here we create the data tables to subset.
+
+```{bash - Data tables, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project
+# Get into the right directory.
+
+mkdir kmar
+# Make a directory called 'kmar'.
+
+cd kmar
+# Navigate to kmar.
+
+mkdir 1_subsample
+# Make directory for the sub-sampled data.
+
+cd 1_subsample
+# Navigate to the directory.
+
+mkdir read1 read2
+# Make directory for each read.
+
+cd /data/kelley/projects/kmar_embryos/data/3.0_adapter_trimmed_Qual_25/trimmed_reads/
+# Navigate the where the data is stored
+
+ll| grep "R1"| awk '{split($9,a,"_"); print a[1]}'>names
+# Here we use awk to grab the names of the files with R1.
+
+ll| grep "R1"| awk '{print("/data/kelley/projects/kmar_embryos/data/3.0_adapter_trimmed_Qual_25/trimmed_reads/"$9)}'> path.read1
+# We retrieve the paths of the files to read.
+
+ll| grep "R2_"| awk '{print("/data/kelley/projects/kmar_embryos/data/3.0_adapter_trimmed_Qual_25/trimmed_reads/"$9)}'> path.read2
+# We retrieve the paths of the files to read.
+
+paste names path.read1 > datatable1
+# Get names to read in data table.
+
+paste names path.read2 > datatable2
+# Get names to read in data table.
+
+mv names ../../../../Shawn/anna_project/kmar/
+# Move the files to correct folders.
+
+mv datatable1 ../../../../Shawn/anna_project/kmar/1_subsample/read1/
+# Move the files to correct folders.
+
+mv datatable2 ../../../../Shawn/anna_project/kmar/1_subsample/read2/
+# Move the files to correct folders.
+
+cd ../../../../Shawn/anna_project/kmar/1_subsample/read1
+# Move to the correct folder.
+```
+
+### Read1 subsample.sh script
+
+Here we subset the first set of reads.
+
+```{bash - Subsetting Read1, eval=FALSE}
+
+nano subsample.sh
+# The below code is used within the script.
+
+#!/bin/bash
+#SBATCH --partition=kamiak
+#SBATCH --error=error.txt
+#SBATCH --array=1-24:1
+#SBATCH --time=1-00:00:00
+#SBATCH --cpus-per-task=5
+
+
+mkdir fastq_files
+# Make the directory
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable1 | awk '{print$1}')
+# Get file names.
+
+read1=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable1 | awk '{print$2}')
+# Get read1.
+
+seqtk sample -s 100 ${read1} 20000000 > fastq_files/${file_name}.R1.fastq
+# Filter
+# End of the script.
+
+sbatch subsample.sh
+# Run the script.
+```
+
+### Read2 subsample.sh script 
+
+Here we subset the second set of reads.
+
+```{bash - Subsetting Read2, eval=FALSE}
+cd ../read2
+nano subsample.sh
+# The below code is used within the script.
+
+#!/bin/bash
+#SBATCH --partition=kamiak
+#SBATCH --error=error.txt
+#SBATCH --array=1-24:1
+#SBATCH --time=1-00:00:00
+#SBATCH --cpus-per-task=5
+
+mkdir fastq_files
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable2 | awk '{print$1}')
+# Get file names.
+
+read2=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable2 | awk '{print$2}')
+# Get read2.
+
+seqtk sample -s 100 ${read2} 20000000 > fastq_files/${file_name}.R2.fastq
+# Filter
+# End of the script.
+
+sbatch subsample.sh
+# Run the script.
+```
+
+***
+
+## Hisat2
+
+The below code chunks map the reads using Hisat2 to the rivulus genome.
+
+### Data for Hisat
+
+Here we retrieve the data to map onto the genome. 
+
+```{bash - Retrieve Reads, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project/kmar
+# Navigate to directory. 
+
+mkdir 2_hisat
+# Make a directory for hisat results
+
+cp names 2_hisat
+# Get a copy of the names in the directory.
+
+cd 1_subsample/read1/fastqc_files
+# Move the the fastqc file location.
+
+ll| grep "R1"| awk '{print("/data/kelley/projects/Shawn/anna_project/kmar/1_subsample/read1/fastq_files/"$9)}'> path.read1
+# Get the file paths.
+
+mv path.read1 ../../../2_hisat/
+# Move the file with paths to hisat directory.
+
+cd ../../read2/fastq_files
+# Move the fastqc file location.
+
+ll| grep "R2"| awk '{print("/data/kelley/projects/Shawn/anna_project/kmar/1_subsample/read2/fastq_files/"$9)}'> path.read2
+# Get the file paths.
+
+mv path.read2 ../../../2_hisat/
+# Move the file with paths to hisat directory.
+
+cd ../../../../
+# Get back to the correct directory.
+
+paste names path.read1 path.read2 > datatable
+# Get all the names into one file.
+
+mkdir stats
+# Make directory.
+
+mkdir delete_this
+# Make directory.
+
+mkdir samfiles
+# Make directory.
+```
+
+### Map Reads using Hisat2
+
+Here we actually map the reads using the data from the above filtered data.
+
+```{bash - hisat2, eval=FALSE}
+nano hisat.sh
+# Below is the script.
+
+#!/bin/bash
+#SBATCH --partition=kamiak
+#SBATCH --array=1-24:1
+#SBATCH --cpus-per-task=1
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$1}')
+# Get the filenames
+
+read1=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$2}')
+# Get read1.
+
+read2=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$3}')
+# Get read2.
+
+hisat2 --phred33 -k 10 --met-file stats/${file_name}.stats --rg-id ${file_name} --rg SM:${file_name} --rg PL:illumina \
+-p 1 --rna-strandness RF --fr --dta --un-conc-gz delete_this/${file_name}.unmapped \
+-x /data/kelley/projects/kmar_genome/fromNCBI -1 ${read1} -2 ${read2} -S samfiles/${file_name}.sam
+# Run hisat2
+
+#End of script
+
+sbatch hisat.sh
+# Run the script.
+```
+
+***
+
+## Convert to BAM
+
+The below code chunks convert from sam to BAM files such that that each component of the read pairs match.
+
+### Retrieve SAM files.
+
+Here retrieve the files.
+
+```{bash - Retrieve SAM, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project/kmar
+# Get the right directory.
+
+mkdir 3_fix
+# Make a directory.
+
+cp names 3_fix
+# Copy names file to the directory.
+
+cd 2_hisat/samfiles
+# Get to the directory with the SAM files.
+
+ll| grep "sam"| awk '{print("/data/kelley/projects/Shawn/anna_project/kmar/2_hisat/samfiles/"$9)}'> path
+mv path ../../3_fix
+# Grab the names for the SAM files.
+
+cd ../../3_fix
+# Move to the new folder.
+
+paste names path > datatable
+# Get paths into datatable file. 
+```
+
+### SAM to BAM Script
+
+Here we convert to BAM files using a script.
+
+```{bash - Convert SAM to BAM, eval=FALSE}
+nano fix.sh
+# Below is the script.
+
+#!/bin/bash
+#SBATCH --partition=kamiak
+#SBATCH --cpus-per-task=8
+#SBATCH --array=1-24:1
+#SBATCH --time=1-00:00:00
+
+module load picard
+# Load picard.
+
+mkdir results
+# Make the directory for the results
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$1}')
+# Get the file names. 
+
+sam_in=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$2}')
+# Get the SAM files
+
+picard FixMateInformation INPUT=${sam_in} \
+OUTPUT=${file_name}.fix.sam VALIDATION_STRINGENCY=SILENT
+# Run picard.
+
+samtools view -@ 10 -b -h ${file_name}.fix.sam > ${file_name}.bam
+# Use sametools to move convert to BAM.
+
+samtools sort -m 4G -o results/${file_name}_sorted_fixed.bam -O bam -T ${file_name} -@ 10 ${file_name}.bam
+# Sort the files.
+# End of the script.
+
+sbatch fix.sh
+# Run the script.
+```
+
+***
+
+## Percent Reads Mapped
+
+The goal of this step was to calculate the percent of reads mapped for each gene.
+
+### Retrieve Data for Picard
+
+Here we set up the files and folder for this step.
+
+```{bash - Picard Data, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project/kmar
+# Get to the directory.
+
+mkdir 4_picard
+# Make a folder.
+
+cp names 4_picard
+# Get a copy of names.
+
+cd 3_fix/results
+# Move to results folder.
+
+ll| grep ".bam"| awk '{print"/data/kelley/projects/Shawn/anna_project/kmar/3_fix/results/"$9}'> path
+# Get the paths to the bam files.
+
+mv path ../../4_picard
+# Move the bam file path file to the correct folder.
+
+paste names path > datatable
+# Get into datatable.
+```
+
+### Run Picard
+
+Here we use a script to run picard and get the percent of reads mapped to the genes.
+
+```{bash - Picard Script, eval=FALSE}
+nano picard.sh
+# Beginning of script.
+
+#!/bin/bash
+#SBATCH --partition=kamiak
+#SBATCH --array=1-24:1
+#SBATCH --cpus-per-task=5
+#SBATCH --time=1-00:00:00
+
+module load picard
+# Load picard.
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$1}')
+# Get file names.
+
+path=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print$2}')
+# Get paths.
+
+
+picard CollectAlignmentSummaryMetrics \
+R=/data/kelley/projects/kmar_genome/fromNCBI/GCF_001649575.2_ASM164957v2_genomic.fna I=${path} O=${file_name}_output.txt
+# Run picard.
+# End of script.
+
+sbatch picard
+# Run script.
+```
+
+***
+
+## Prep for prepde.
+
+The goal of this step was to prepare for prepde.
+
+### Prepde data.
+
+Here we retrieve the data.
+
+```{bash - prepde Data Retrieval, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project/kmar
+# Move to the directory.
+
+mkdir 5_stringtie
+# Make directory.
+
+cd 4_picard
+# Move to the directory.
+
+cp datatable ../5_stringtie
+# Copy the correct file to the new directory.
+
+cd ../5_stringtie
+# Move back to new directory.
+```
+
+### Prepare the files.
+
+Here we use a script to prep the data for prepde.
+
+```{bash - Prep for prepde, eval=FALSE}
+nano stringtie.sh
+# Script begins.
+
+#!/bin/bash
+#SBATCH --partition=popgenom
+#SBATCH --cpus-per-task=2
+#SBATCH --array=1-24:1
+#SBATCH --time=1-00:00:00
+
+mkdir output
+# Make directory.
+
+file_name=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print $1}')
+# Get file names.
+
+read1=$(sed -n ''$SLURM_ARRAY_TASK_ID'p' datatable | awk '{print $2}')
+# Get read1.
+
+stringtie ${read1} -o output/${file_name}.read -m 50 --rf -e -B -c 10 -p 2 \
+-G /data/kelley/projects/kmar_genome/fromNCBI/GCF_001649575.2_ASM164957v2_genomic.gff
+# Prep for prepde with stringtie.
+# End of script.
+
+sbatch stringtie.sh
+# Run the script.
+```
+
+***
+
+## Prepde
+
+The goal of this step was to map the amount of RNA seen for each gene in each kmar sample.  
+This was done by creating two CSV files containing the count matrices for genes and transcripts that could be later uploaded to R Studio.
+
+### Get the Data
+
+Here we get the data for prepde.
+
+```{bash - Get Data for prepde, eval=FALSE}
+cd /data/kelley/projects/Shawn/anna_project/kmar
+# Get to the directory.
+
+mkdir 6_prepde
+# Make a directory.
+
+cp names 6_prepde
+# Copy names to the new directory.
+
+cd 5_stringtie/output
+# Get to stringtie output.
+
+ll| grep "read"| awk '{print("/data/kelley/projects/Shawn/anna_project/kmar/5_stringtie/output/"$9)}'> path
+# Get paths of the files
+
+mv path ../../6_prepde
+# Move the files over
+
+cd ../../6_prepde
+# Get to the prepde directory.
+```
+
+### Run prepde
+
+Here we use a custom script to run prepde.
+
+```{bash - Prepde, eval=FALSE}
+nano prepde.py
+# Start of script.
+
+#!/bin/bash
+#SBATCH --partition=popgenom
+#SBATCH --time=1-00:00:00
+
+python /data/kelley/projects/programs/pythonScripts/prepDE.py -i datatable -g gene_count_matrix_try4.csv -t transcript_count_matrix_try4.csv -l 90
+# Run prepde in python.
+# End of script.
+
+sbatch prepde.py
+# Run script.
+```
+
+***
+
+# Data Analysis
+
+## Load Libraries
+```{r - Load Libs}
+library(edgeR)
+library(DESeq2)
+library(statmod)
+library(WGCNA)
+library(gprofiler2)
+library(tidyverse)
+library(heatmaply)
+library(limma)
+library(plotly)
+library(tibble)
+library(DT)
+library(GOSim)
+library(topGO)
+```
+
+***
+
+## Importing Data
+
+Here we import both the gene matrix and sample information.
+
+```{r - Importing Data}
+mydata = read.csv("Data/Sequence/gene_count_matrix_kmar.csv", header=T, row.names=1)
+# Gene count matrix
+
+Sample.Data = read.csv("Data/Sequence/sampledata_kmar.csv", header=T, row.names=1)
+# Sample Information
+```
+
+***
+
+## Preprocessing
+
+Here we filter the data to get rid of genes with no counts and genes that do not have at least 0.5 counts per million in at least 3 individuals. Next, we rename the rows to remove "gene-" from each row names to facilitate downstream analyses. Finally, we create the transformed matrix for MDS plotting and other analyses.  
+
+```{r - Sorting and Filtering}
+
+Data.filtered <- mydata %>%
+  dplyr::filter(rowSums(.) != 0) %>% 
+  # Filter out rows that add to 0.
+  dplyr::filter(rowSums(edgeR::cpm(.) > 0.5) >=3) %>%
+  # Filter out rows that had less than 0.5 counts per million in at least 3 individuals.
+  dplyr::select(order(colnames(.)))
+  # Order the columns by the column name
+
+rownames(Data.filtered) <- gsub("gene-", "", rownames(Data.filtered))
+# Rename the rows so that they are just the gene name.
+
+
+Sample.Data <- Sample.Data[ order(row.names(Sample.Data)), ] %>%
+  # Order the rows to match the filtered data %>%
+  dplyr::mutate(Treatment = as.factor(Treatment))
+  # Convert treatment to a factor for DESeq
+
+Transformed.DESeq.Matrix <- DESeq2::DESeqDataSetFromMatrix(countData = Data.filtered, colData = Sample.Data, design = ~Treatment) %>%
+  # Setup DESeq data from count matrix.
+  DESeq2::varianceStabilizingTransformation(., blind = T) %>%
+  # Run Transformation blind to the experimental design.
+  assay(.)
+  # Extract the transformed data as a matrix.
+
+DGE.Data <- edgeR::DGEList(counts = Data.filtered, group = as.factor(colnames(Data.filtered))) %>%
+  # Create a DGEList.
+  edgeR::calcNormFactors(.)
+  # Calculate the normalization factors per sample.
+```
+
+***
+
+## MDS plots
+
+We create MDS plots for the top 10,000, 1,000, and 500 genes to visualize separations in the treatment groups.
+
+```{r - MDS Plots}
+MDS.10000 <- limma::plotMDS(DGE.Data, top = 10000, gene.selection = "pairwise",dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 10,000", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 10,000 genes
+
+MDS.1000 <- limma::plotMDS(DGE.Data, top = 1000, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 1,000", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 1,000 genes
+
+MDS.500 <- limma::plotMDS(DGE.Data, top = 500, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 500", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 500 genes
+```
+
+***
+
+## WGCNA
+
+Here we evaluate the relationship between samples and test for data that should be removed using WGCNA.
+
+```{r - Test Samples and Evaluate Relationship}
+
+GSG <- WGCNA::goodSamplesGenes(t(Transformed.DESeq.Matrix), verbose = 3)
+# Here we check for genes or samples with too many missing values. All samples and genes have passed.
+
+Sample.Tree <- hclust(dist(t(Transformed.DESeq.Matrix)), method = "average");
+par(cex = 0.6);
+par(mar = c(0,4,2,0))
+# Here we evaluate the relationship between samples
+
+plot(Sample.Tree, main = "Sample clustering to detect outliers for RHL", sub="", xlab="", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+# Here we plot the relationship tree.
+
+```
+
+***
+
+## Differential Gene Expression
+
+The following code chunks conduct differential gene expression analyses for multiple pairwise comparisons (Pre-Cold vs Pre-Warm, Pre-Cold vs Post-Cold, Post-Cold vs Post-Warm, and Pre-Warm vs Post-Warm).
+
+### Fitting the Model
+
+The follow code chunk creates a design matrix, estimates dispersion, plots both the biological Coefficient of variation and the gene wise quasi-likelihood dispersion against gene abundance, and fits the quasi-likelihood negative binomial generalized log-linear model to the gene expression count data. 
+
+```{r - Differential Gene Expression}
+Design <- model.matrix(~0 + Sample.Data$Treatment, data = DGE.Data$samples)
+# Here we create the design matrix with treatment as the blocking factor
+
+DGE.Data <- edgeR::estimateDisp(DGE.Data, Design, robust = TRUE)
+# Here we get the maximized profile log-likelihoods for each tag. We use this to plot the biological coefficient of variation.
+
+BCV.Plot <- edgeR::plotBCV(DGE.Data, main = "Biological Coefficient of Variation")
+# We plot the biological coefficient of variation against gene abundance.
+
+DGE.Fit <- edgeR::glmQLFit(DGE.Data, Design, robust = TRUE)
+# We fit a quasi-likelihood negative binomial generalized log-linear model to the gene expression count data.
+
+QLDisp.Plot <- edgeR::plotQLDisp(DGE.Fit, main = "QLDisp for Differential Gene Expression")
+# We plot the gene wise quasi-likelihood dispersion against gene abundance.
+```
+
+### F test
+
+Here we test the significance of differential gene expression for each comparison. We conduct four tests described above. 
+
+#### Custom Function
+
+The following code chunk is a custom function to conduct the F-test without superfluous code for every contrast. The function is designed to be used with a list with mapply. 
+
+```{r - F Test Function}
+F.test.Fun <- function(Data, contrast, filename, filename.up, filename.down, name){
+  library(edgeR)
+  #This library is for the actual F-tests.
+  library(tidyverse)
+  #This library is for separating the up regulated genes from the down regulated genes.
+  
+  F.test.results <- edgeR::glmQLFTest(Data, contrast = contrast)
+  #This fits a quasi-likelihood negative binomial generalized log-linear model to the gene count data using contrasts and a DGEList object.
+
+  write.csv(edgeR::topTags(F.test.results, n=20000),filename)
+  #Write the model results to a csv.
+  
+  table <- edgeR::decideTestsDGE(F.test.results, p.value = 0.05)
+  #Create a table with significant genes only.
+  
+      results <- edgeR::topTags(F.test.results, n = 4000, sort.by = "logFC")
+    #this result table is used for volcano plots
+  
+  if((summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3]) > 0){
+    #The "if statement handles" the case in which there are no significant genes.
+    
+    results.sig <- edgeR::topTags(F.test.results, n = summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3], p.value = 0.05)
+    #We get the significant results from the above complete table.
+    
+    results.up = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC > 0 & FDR < 0.05) %>% arrange(FDR)
+    #Here we get the up regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
+    
+    results.down = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC < 0 & FDR < 0.05) %>% arrange(FDR)
+    #Here we get the down regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
+    
+    write.table(results.up, file = filename.up, quote=F, row.names = F, col.names = F)
+    #Write a csv for the up regulated genes. 
+    
+    write.table(results.down, file = filename.down, quote=F, row.names = F, col.names = F)
+    #Write a csv for the down regulated genes. 
+    
+    return(name <- list(Results = F.test.results,
+            Significance.Table = table,
+            Significant.Table = results.sig,
+            All.Results = results,
+            Up = results.up,
+            Down = results.down))
+    #Here we return a list of all the objects needed in downstream analysis.
+    }else{
+      return(
+        name <- list(Results = F.test.results,
+                          Significance.Table = table,
+                     All.Results = results))
+      #Here we return a list of all the objects needed in downstream analysis when there are no significant genes. 
+              }
+}
+#The function condenses the F-tests to a single mapply call over a list instead of separate code for each comparison. 
+```
+
+#### Data List
+
+Here we create the data list to be applied over with the custom function. 
+
+```{r - Data List}
+F.test.Data.List <- list( Data = list(DGE.Fit,
+                                      DGE.Fit,
+                                      DGE.Fit,
+                                      DGE.Fit),
+                          Names = list("PreCold.PreWarm",
+                                    "PreCold.PostCold",
+                                    "PostCold.PostWarm",
+                                    "Prewarm.PostWarm"),
+                          contrasts = list(PreC.PreW = c(1,-1,0,0),
+                                           PreC.PoC = c(1,0,-1,0),
+                                           PoC.PoW = c(0,0,1,-1),
+                                           PreW.PoW =c(0,1,0,-1)),
+                          filenames = list(PreC.PreW = "RHL.precoldvsprewarm.csv",
+                                           PreC.PoC = "RHL.precoldvspostcold.csv",
+                                           PoC.PoW = "RHL.postcoldvspostwarm.csv",
+                                           PreW.PoW ="RHL.postcoldvspostwarm.csv"),
+                          filenames.up = list(PreC.PreW = "RHL-UP-PreColdvsPreWarm-0.05.txt",
+                                              PreC.PoC = "RHL-UP-PreColdvsPostCold-0.05.txt",
+                                              PoC.PoW = "RHL-UP-PostColdvsPostWarm-0.05.txt",
+                                              PreW.PoW = "RHL-UP-PreWarmvsPostWarm-0.05.txt"),
+                          filenames.down = list(PreC.PreW = "RHL-DOWN-PreColdvsPreWarm-0.05.txt",
+                                                PreC.PoC = "RHL-DOWN-PreColdvsPostCold-0.05.txt",
+                                                PoC.PoW = "RHL-DOWN-PostColdvsPostWarm-0.05.txt",
+                                                PreW.PoW = "RHL-DOWN-PreWarmvsPostWarm-0.05.txt"))
+#This is the data object used for the F-tests. When calling mapply you must have the same number of items in each list; therefore, we have four copies of the data.
+```
+
+#### Significance Testing
+
+Here we complete the F-test using the custom function to iterate across the data list. 
+
+```{r - F-tests}
+F.tests <- mapply(FUN = F.test.Fun,  Data = F.test.Data.List$Data , contrast = F.test.Data.List$contrasts, filename = F.test.Data.List$filenames, filename.up = F.test.Data.List$filenames.up, filename.down = F.test.Data.List$filenames.down, name = F.test.Data.List$Names) %>%
+  # We first run the F-test pipeline for each comparison. 
+  setNames(F.test.Data.List$Names)
+  # We also name each list item by the comparison. 
+
+```
+
+### Making Interactive Tables and Graphs for F-Test Results
+
+Here we make interactive tables and graphs from the F-test results
+
+#### Interactive DEG Table
+
+This is how we make an interactive table from the data.
+
+```{r - DE Tables}
+DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(comparision = "PreCold vs PreWarm")) %>%
+  bind_rows( (F.tests$PreCold.PostCold$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(comparision = "PreCold vs PostCold"))) %>%
+  bind_rows( (F.tests$PostCold.PostWarm$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(comparision = "PostCold vs PostWarm"))) 
+# I convert the results to a tibble with the comparisons as a separate column. This table only has significantly deferentially expressed genes.
+
+
+Int.DE.Table <- DT::datatable(DE.Table,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20)) %>%
+  DT::formatRound(columns=c(2:5), digits=3)
+# Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was performed. 
+
+Int.DE.Table
+# Display the interactive table.
+```
+
+#### Interactive Volcano Plot
+
+Here we make interactive volcano plots using all the data and p-value cutoffs.
+
+```{r - DE Volcano Plot}
+Volcano.Plots <- plotly::ggplotly(ggplot((F.tests$PreCold.PreWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "PreCold vs PreWarm")) %>%
+  bind_rows( (F.tests$PreCold.PostCold$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "PreCold vs PostCold"))) %>%
+  bind_rows( (F.tests$PostCold.PostWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "PostCold vs PostWarm"))) %>%
+  bind_rows( (F.tests$Prewarm.PostWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "PreWarm vs PostWarm")))) +
+    aes(y = -log10(FDR), x = logFC, text = paste("Symbol:", Gene)) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = -log10(0.05), linetype = "longdash", colour = "grey", size = 1) +
+  geom_vline(xintercept = 1, linetype = "longdash", colour = "#BE684D", size = 1) +
+  geom_vline(xintercept = -1, linetype = "longdash", colour = "#2C467A", size = 1) +
+  facet_wrap(~ comparision) +
+  labs( title = "Volcano plot",
+        subtitle = "Kryptolebias marmoratus",
+        caption = paste0("produced on ", Sys.time())) +
+  theme_bw())
+# Here I create an interactive volcano plot. The gray line is the p-value cut off. The vertical lines designate a log fold change of at least |1|.
+
+Volcano.Plots
+# Display the interactive volcano plots.
+```
+
+### Clustering
+
+Here we are going to cluster using hierarchical clustering methods.
+
+#### Data Preparation for Clustering
+
+We first model the mean-variance relationship and normalize the data for clustering.
+
+```{r - Clustering Data Preparation}
+V.DGE.Data <- limma::voom(DGE.Data, Design, plot = TRUE)
+# Here we mode the mean-variance relationship and get observation-level weights to run clustering
+
+Diffgenes <- V.DGE.Data$E %>%
+  dplyr::as_tibble(rownames = "Gene") %>%
+  dplyr::filter(Gene %in% rownames(F.tests$PreCold.PreWarm$Significant.Table$table)|Gene %in% rownames(F.tests$PreCold.PostCold$Significant.Table$table)|Gene %in% rownames(F.tests$PostCold.PostWarm$Significant.Table$table)) %>%
+  tibble::column_to_rownames(., var = "Gene") %>%
+  as.matrix(.)
+# Here we filter out genes that are not deferentially expressed.
+
+```
+
+
+#### Clustering by Sample
+
+Here we only use deferentially expressed gene to cluster. We keep each sample separate. 
+
+```{r - Clustering By Sample}
+clustRow <- hclust(as.dist(1-cor(t(Diffgenes), method = "pearson")), method = "complete")
+# Here we cluster by Row.
+
+clustColumns <- hclust(as.dist(1-cor((Diffgenes), method = "spearman")), method = "complete")
+# Here we cluster by columns or samples.
+
+module.assign <- cutree(clustRow, k = 4)
+# We assign genes to clusters
+
+module.color <- module.assign %>%
+  tibble::as_tibble(.) %>%
+  dplyr::mutate(value = case_when(
+    value == 1 ~ "blue",
+    value == 2 ~ "purple",
+    value == 3 ~ "orange",
+    value == 4 ~ "grey"
+  )) %>%
+  dplyr::rename(Modules = value) 
+
+heat.map <- heatmaply::heatmaply(Diffgenes,
+                              Rowv = as.dendrogram(clustRow),
+                              Colv = as.dendrogram(clustColumns),
+                              RowSideColors = module.color,
+                              #col_side_colors = NULL,
+                              scale = c("row"),
+                              colors = gplots::bluered(75),
+                              row_dend_left = TRUE,
+                              key.title = "Scaled By Row",
+                              trace = 'none',
+                              main = c("Differentially Expressed Genes Heatmap"),
+                              xlab = c("Samples"))
+# Here we make a heatmap with the deferentially expressed Genes scaled by the row to emphasize sample differences.
+
+heat.map
+# Display the heatmap.
+```
+
+#### Clustering by Group
+
+Here I group samples by the treatment then cluster. We group all warm treatments together because they had no differentially expressed genes.
+
+```{r - Cluster By Group}
+
+Diffgenes.Group <- Diffgenes
+# We create a copy of Diffgenes to group by for a group level heatmap.
+
+colnames(Diffgenes.Group) <- c("PostCold", "PostCold", "PostCold", "Warm", "Warm", "Warm", "PreCold","PreCold","PreCold","Warm","Warm","Warm")
+# We rename the columns for grouping. We do not separate the Pre versus Post Warm because they have no deferentially expressed genes between them.
+
+Avg.V.DGE <- limma::avearrays(Diffgenes.Group)
+# We get group level averages.
+
+Avg.clustRow <- hclust(as.dist(1-cor(t(Avg.V.DGE), method = "pearson")), method = "complete")
+# Here we cluster by Row.
+
+Avg.clustColumns <- hclust(as.dist(1-cor((Avg.V.DGE), method = "spearman")), method = "complete")
+# Here we cluster by columns or samples.
+
+Avg.module.assign <- cutree(Avg.clustRow, k = 4)
+# We assign genes to clusters
+
+Avg.module.color <- Avg.module.assign %>%
+  tibble::as_tibble(.) %>%
+  dplyr::mutate(value = case_when(
+    value == 1 ~ "blue",
+    value == 2 ~ "purple",
+    value == 3 ~ "orange",
+    value == 4 ~ "grey"
+  )) %>%
+  dplyr::rename(Modules = value) 
+
+Avg.heat.map <- heatmaply::heatmaply(Avg.V.DGE,
+                              Rowv = as.dendrogram(Avg.clustRow),
+                              Colv = as.dendrogram(Avg.clustColumns),
+                              row_side_colors = Avg.module.color,
+                              #col_side_colors = NULL,
+                              scale = "row",
+                              colors = gplots::bluered(75),
+                              row_dend_left = TRUE,
+                              key.title = "Scaled By Row",
+                              trace = 'none',
+                              main = c("Differentially Expressed Genes Heatmap")
+                              #density.info = "none", trace = "none",
+                              #cexRow = 1, cexCol = 1, margins = c(8,20))
+)
+# Here we make a heatmap with the deferentially expressed Genes scaled by the row to emphasize group differences.
+
+Avg.heat.map
+# Display the heatmap.
+
+```
+
+***
+
+## GO 
+
+We perform a GO enrichment analysis separately for each comparison. 
+
+### Data for GO
+
+Here we make a data list for the GO enrichment analysis.
+
+```{r - GO Data}
+Mapping.fun <- function(Data){
+  library(gprofiler2)
+  library(tidyverse)
+  
+  Data <- gconvert(query = row.names(Data), organism = "kmarmoratus", 
+         target="ENSG", mthreshold = 1, filter_na = FALSE) %>%
+    # I use gconvert to map the genes on to IDs with only 1 ID per gene.
+  dplyr::mutate(target = if_else(target == "nan", input, target)) %>%
+    # If the gene does not map, I fill it with the original gene name.
+  pull(target)
+  # I then get the new names as a vector
+  
+  return(Data)}
+# This is a function to convert all the gene names to ensemble IDs.
+  
+
+GO.input.list <- lapply((list(F.tests$PreCold.PreWarm$Up, 
+                              F.tests$PreCold.PreWarm$Down, 
+                              F.tests$PreCold.PostCold$Up, 
+                              F.tests$PreCold.PostCold$Down, 
+                              F.tests$PostCold.PostWarm$Up, 
+                              F.tests$PostCold.PostWarm$Down)), Mapping.fun)
+names(GO.input.list) <- c("PrC_PrW_Up",
+                          "PrC_PrW_Down",
+                          "PrC_PoC_Up",
+                          "PrC_PoC_Down",
+                          "PoC_PoW_Up",
+                          "PoC_PoW_Down")
+# We create a list with all the significantly up and down regulated differently expressed genes for each comparison and extract just the rownames. We did not do this for the prewarm and post warm comparison because no genes were deferentially expressed.
+
+```
+
+### ORA
+
+Here we complete an overrepresentation analysis for GO terms. We create interactive tables and plots to help with data exploration. The queries are in the same order as the data list. Therefore, query 1 represents PreCold versus PreWarm up regulated genes.
+
+```{r - GO Fishers}
+Fishers.gost.res <- gost(GO.input.list, organism = "kmarmoratus", correction_method = "fdr", exclude_iea = FALSE, sources = c("GO:BP", "GO:CC", "GO:MF"),user_threshold = 0.05,
+ ordered_query = FALSE, domain_scope = "annotated", evcodes = TRUE)
+# We run gost on all the GO libraries. We use a list of the data which is differentiated by the query column.
+
+gostplot(Fishers.gost.res, interactive = TRUE, capped = TRUE)
+# Here we make an interactive Manhattan plot.
+
+
+gem.Fishers <- Fishers.gost.res$result[,c("term_id", "term_name", "p_value", "intersection", "query")] %>% dplyr::rename("GO.ID" = term_id, "Description" = term_name, "p.Val" = p_value, "Genes" = intersection) %>%
+  dplyr::mutate(FDR = p.Val, Phenotype = case_when( stringr::str_detect(query, "Up") ~ "+1", stringr::str_detect(query, "Down") ~ "-1"), query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW"))
+
+gem.Fishers %>% group_by(query) %>%
+  group_walk(~
+    write.table(data.frame(.x[,c("GO.ID", "Description", "p.Val", "FDR", "Phenotype", "Genes")]), 
+                file = paste0("gProfiler_", unique(.y$query), "_gem.txt"),
+                sep = "\t", quote = F, row.names = F))
+
+
+Fishers.gost.table <- as_tibble(Fishers.gost.res$result) %>% 
+  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% dplyr::mutate(query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW")) %>% rename(Comparision = query)
+# Here we convert the results into a tibble and swap query for actual comparison names.
+
+Fishers.GO.Counts <- Fishers.gost.table %>% group_by(Comparision, Direction, source) %>% tally(.)
+# We count the various GO terms in each category. 
+
+DT::datatable(Fishers.gost.table,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20))
+# Make the interactive table
+
+DT::datatable(Fishers.GO.Counts,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20))
+# Make the interactive table
+```
+### Ranked GO enrichment
+
+Here we complete a ranked enrichment analysis for GO terms. We create interactive tables and plots to help with data exploration. The queries are in the same order as the data list. Therefore, query 1 represents PreCold versus PreWarm up regulated genes.
+
+```{r - Go Ranked Test}
+Ranked.gost.res <- gost(GO.input.list, organism = "kmarmoratus", correction_method = "fdr", exclude_iea = FALSE, sources = c("GO:BP", "GO:CC", "GO:MF"), ordered_query = TRUE, domain_scope = "annotated")
+# We run gost on all the GO libraries. We use a list of the data which is differentiated by the query column. The ordered_query = TRUE means that we run a ranked test.
+
+gostplot(Ranked.gost.res, interactive = TRUE, capped = TRUE) 
+# Here we make an interactive Manhattan plot.
+
+Ranked.gost.table <- as_tibble(Ranked.gost.res$result) %>%  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% dplyr::mutate(query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW")) %>% rename(Comparision = query)
+# Here we convert the results into a tibble and swap query for actual comparison names.
+
+Ranked.GO.Counts <- Ranked.gost.table %>% group_by(Comparision, Direction, source) %>% tally(.)
+# We count the various GO terms in each category.
+
+DT::datatable(Ranked.gost.table,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20))
+# Make the interactive table
+
+DT::datatable(Ranked.GO.Counts,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20))
+# Make the interactive table
+```

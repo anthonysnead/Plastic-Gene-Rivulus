@@ -1,0 +1,415 @@
+---
+title: <span style = "font-weight:normal; color:#000000; font-size = 40px; font-family:Times, serif"><center> Plasticity in Gene Expression in Response to Embryonic Environment Supporting Information <center></span>
+author: <h4 style = "font-weight:normal; color:#000000; font-size = 12px; font-family:Times, serif"> <br> Anthony A Snead<sup>1</sup>, Corey R Quackenbush<sup>2</sup>, Shawn Trojahn<sup>2</sup>, Anna McDonald<sup>2</sup>, Luana Lins<sup>2</sup> Chris Cornelius<sup>1</sup>, Paula E Adams<sup>1</sup>, Dengke Ma<sup>3</sup> Yuying Hsu<sup>4</sup>, Eric Haag<sup>5</sup>, Frédéric Silvestre<sup>6</sup>, Akira Kanamori<sup>7</sup>, Ryan L Earley<sup>1\*</sup>, Joanna L Kelley<sup>2\*</sup></h4>
+output:
+  html_document:
+    toc: false
+    toc_float: false
+    fig_width: 8
+    fig_height: 6
+    fig_caption: true
+---
+<br>
+<br>
+<br>
+<span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif"> Affiliations:</span>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>1</sup>Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>2</sup>School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164</span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>3</sup></span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>4</sup></span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>5</sup></span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>6</sup></span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>7</sup></span>
+<br>
+<br>
+<br>
+<br><span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif">Authors for correspondence:</span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Joanna L. Kelley, School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164, USA, 509-335-0037 (phone), 509-335-4848 (fax), joanna.l.kelley@wsu.edu</span>
+<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Ryan Earley, Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
+<br>
+<br>
+<br>
+
+
+```{r setup, include=FALSE}
+library(rmarkdown)
+library(tinytex)
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(gt)
+library(DT)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, number_sections = FALSE)
+load("C:/Users/antho/Desktop/Ryan_Research/Rivulus_Projects/Embryo_RNA/Code/.RData")
+```
+```{r - Required Code, eval=FALSE}
+#This is the code too create all the objects required to knit.
+library(edgeR)
+library(DESeq2)
+library(statmod)
+library(WGCNA)
+library(gprofiler2)
+library(tidyverse)
+library(heatmaply)
+library(limma)
+library(plotly)
+library(tibble)
+library(DT)
+library(gt)
+
+Temperature.data <- lapply(list.files( "C:/Users/antho/OneDrive - The University of Alabama/Professional/Ryan_Research/Rivulus_Projects/Embryo Transcriptomics/Data/Temperature Data/20C",full.names=TRUE), read.table, sep = ",") %>%
+  bind_rows(.) %>%
+  dplyr::mutate(Treatment = "Cold",
+                V1 = as.POSIXct(V1, "%m/%d/%y %I:%M:%S %p",tz = "America/Chicago")) %>%
+  select(-V2) %>%
+  rename( Date = V1,
+          Temperature = V3) %>%
+  bind_rows(., (lapply(list.files("C:/Users/antho/OneDrive - The University of Alabama/Professional/Ryan_Research/Rivulus_Projects/Embryo Transcriptomics/Data/Temperature Data/25C",full.names=TRUE), read.table, sep = ",") %>%
+  bind_rows(.) %>%
+  dplyr::mutate(Treatment = "Warm",
+                V1 = as.POSIXct(V1, "%m/%d/%y %I:%M:%S %p",tz = "America/Chicago")) %>%
+  select(-V2) %>%
+  rename( Date = V1,
+          Temperature = V3)))
+
+setwd("C:/Users/antho/Desktop/Embryo_RNA")
+# Set the working directory.
+
+mydata = read.csv("gene_count_matrix_kmar.csv", header=T, row.names=1)
+# Gene count matrix
+
+Sample.Data = read.csv("sampledata_kmar.csv", header=T, row.names=1)
+# Sample Information
+
+
+Data.filtered <- mydata %>%
+  dplyr::filter(rowSums(.) != 0) %>% 
+  # Filter out rows that add to 0.
+  dplyr::filter(rowSums(edgeR::cpm(.) > 0.5) >=3) %>%
+  # Filter out rows that had less than 0.5 counts per million in at least 3 individuals.
+  dplyr::select(order(colnames(.)))
+  # Order the columns by the column name
+
+rownames(Data.filtered) <- gsub("gene-", "", rownames(Data.filtered))
+# Rename the rows so that they are just the gene name.
+
+
+Sample.Data <- Sample.Data[ order(row.names(Sample.Data)), ] %>%
+  # Order the rows to match the filtered data %>%
+  dplyr::mutate(Treatment = as.factor(Treatment))
+  # Convert treatment to a factor for DESeq
+
+Transformed.DESeq.Matrix <- DESeq2::DESeqDataSetFromMatrix(countData = Data.filtered, colData = Sample.Data, design = ~Treatment) %>%
+  # Setup DESeq data from count matrix.
+  DESeq2::varianceStabilizingTransformation(., blind = T) %>%
+  # Run Transformation blind to the experimental design.
+  assay(.)
+  # Extract the transformed data as a matrix.
+
+DGE.Data <- edgeR::DGEList(counts = Data.filtered, group = as.factor(colnames(Data.filtered))) %>%
+  # Create a DGEList.
+  edgeR::calcNormFactors(.)
+  # Calculate the normalization factors per sample.
+
+Design <- model.matrix(~0 + Sample.Data$Treatment, data = DGE.Data$samples)
+# Here we create the design matrix with treatment as the blocking factor
+
+DGE.Data <- edgeR::estimateDisp(DGE.Data, Design, robust = TRUE)
+# Here we get the maximized profile log-likelihoods for each tag. We use this to plot the biological coefficient of variation.
+
+DGE.Fit <- edgeR::glmQLFit(DGE.Data, Design, robust = TRUE)
+# We fit a quasi-likelihood negative binomial generalized log-linear model to the gene expression count data.
+
+F.test.Fun <- function(Data, contrast, filename, filename.up, filename.down, name){
+  library(edgeR)
+  #This library is for the actual F-tests.
+  library(tidyverse)
+  #This library is for separating the up regulated genes from the down regulated genes.
+  
+  F.test.results <- edgeR::glmQLFTest(Data, contrast = contrast)
+  #This fits a quasi-likelihood negative binomial generalized log-linear model to the gene count data using contrasts and a DGEList object.
+
+  write.csv(edgeR::topTags(F.test.results, n=20000),filename)
+  #Write the model results to a csv.
+  
+  table <- edgeR::decideTestsDGE(F.test.results, p.value = 0.05)
+  #Create a table with significant genes only.
+  
+      results <- edgeR::topTags(F.test.results, n = 4000, sort.by = "logFC")
+    #this result table is used for volcano plots
+  
+  if((summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3]) > 0){
+    #The "if statement handles" the case in which there are no significant genes.
+    
+    results.sig <- edgeR::topTags(F.test.results, n = summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3], p.value = 0.05)
+    #We get the significant results from the above complete table.
+    
+    results.up = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC > 0 & FDR < 0.05) %>% arrange(FDR)
+    #Here we get the up regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
+    
+    results.down = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC < 0 & FDR < 0.05) %>% arrange(FDR)
+    #Here we get the down regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
+    
+    write.table(results.up, file = filename.up, quote=F, row.names = F, col.names = F)
+    #Write a csv for the up regulated genes. 
+    
+    write.table(results.down, file = filename.down, quote=F, row.names = F, col.names = F)
+    #Write a csv for the down regulated genes. 
+    
+    return(name <- list(Results = F.test.results,
+            Significance.Table = table,
+            Significant.Table = results.sig,
+            All.Results = results,
+            Up = results.up,
+            Down = results.down))
+    #Here we return a list of all the objects needed in downstream analysis.
+    }else{
+      return(
+        name <- list(Results = F.test.results,
+                          Significance.Table = table,
+                     All.Results = results))
+      #Here we return a list of all the objects needed in downstream analysis when there are no significant genes. 
+              }
+}
+#The function condenses the F-tests to a single mapply call over a list instead of separate code for each comparison. 
+
+F.test.Data.List <- list( Data = list(DGE.Fit,
+                                      DGE.Fit,
+                                      DGE.Fit,
+                                      DGE.Fit),
+                          Names = list("PreCold.PreWarm",
+                                    "PreCold.PostCold",
+                                    "PostCold.PostWarm",
+                                    "Prewarm.PostWarm"),
+                          contrasts = list(PreC.PreW = c(1,-1,0,0),
+                                           PreC.PoC = c(1,0,-1,0),
+                                           PoC.PoW = c(0,0,1,-1),
+                                           PreW.PoW =c(0,1,0,-1)),
+                          filenames = list(PreC.PreW = "RHL.precoldvsprewarm.csv",
+                                           PreC.PoC = "RHL.precoldvspostcold.csv",
+                                           PoC.PoW = "RHL.postcoldvspostwarm.csv",
+                                           PreW.PoW ="RHL.postcoldvspostwarm.csv"),
+                          filenames.up = list(PreC.PreW = "RHL-UP-PreColdvsPreWarm-0.05.txt",
+                                              PreC.PoC = "RHL-UP-PreColdvsPostCold-0.05.txt",
+                                              PoC.PoW = "RHL-UP-PostColdvsPostWarm-0.05.txt",
+                                              PreW.PoW = "RHL-UP-PreWarmvsPostWarm-0.05.txt"),
+                          filenames.down = list(PreC.PreW = "RHL-DOWN-PreColdvsPreWarm-0.05.txt",
+                                                PreC.PoC = "RHL-DOWN-PreColdvsPostCold-0.05.txt",
+                                                PoC.PoW = "RHL-DOWN-PostColdvsPostWarm-0.05.txt",
+                                                PreW.PoW = "RHL-DOWN-PreWarmvsPostWarm-0.05.txt"))
+#This is the data object used for the F-tests. When calling mapply you must have the same number of items in each list; therefore, we have four copies of the data.
+
+F.tests <- mapply(FUN = F.test.Fun,  Data = F.test.Data.List$Data , contrast = F.test.Data.List$contrasts, filename = F.test.Data.List$filenames, filename.up = F.test.Data.List$filenames.up, filename.down = F.test.Data.List$filenames.down, name = F.test.Data.List$Names) %>%
+  # We first run the F-test pipeline for each comparison. 
+  setNames(F.test.Data.List$Names)
+  # We also name each list item by the comparison. 
+
+GO.input.list <- lapply((list(F.tests$PreCold.PreWarm$Up, 
+                              F.tests$PreCold.PreWarm$Down, 
+                              F.tests$PreCold.PostCold$Up, 
+                              F.tests$PreCold.PostCold$Down, 
+                              F.tests$PostCold.PostWarm$Up, 
+                              F.tests$PostCold.PostWarm$Down)), rownames)
+# We create a list with all the significantly up and down regulated differently expressed genes for each comparison and extract just the rownames. We did not do this for the prewarm and post warm comparison because no genes were deferentially expressed.
+
+names(GO.input.list) <- c("Pre-Cold vs. Pre-Warm Up",
+                          "Pre-Cold vs. Pre-Warm Down",
+                          "Pre-Cold vs. Post-Cold Up",
+                          "Pre-Cold vs. Post-Cold Down",
+                          "Post-Cold vs. Post-Warm Up",
+                          "Post-Cold vs. Post-Warm Down")
+
+Fishers.gost.res <- gost(GO.input.list, organism = "kmarmoratus", correction_method = "fdr", exclude_iea = FALSE, sources = c("GO:BP", "GO:CC", "GO:MF"), ordered_query = FALSE, domain_scope = "annotated")
+# We run gost on all the GO libraries. We use a list of the data which is differentiated by the query column.
+
+
+Fishers.gost.table <- as_tibble(Fishers.gost.res$result) %>%
+  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% 
+  dplyr::mutate(query = gsub("Up", "", query),
+                query = gsub("Down", "", query)) %>%
+  rename(Comparison = query, FDR = p_value, "Term ID" = term_id, Source = source, "Term Name" = term_name) %>%
+  select(Comparison,FDR,"Term ID",Source,"Term Name")
+```
+
+<h1 style = "font-weight: normal; color: #000000; font-size = 24px; font-family:Times, serif">Supporting Figures</h1>
+
+<br>
+```{r - MDS Top 500, fig.align = "center"}
+par(mar = c(4,4,1.5,.5), family ="serif")
+MDS.500 <- limma::plotMDS(DGE.Data, top = 500, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 500", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 500 genes
+```
+<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 1. The multidimensional scaling plot for the 500 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br>
+<br>
+<br>
+
+```{r - MDS Top 1000, fig.align = "center" }
+par(mar = c(4,4,1.5,.5), family ="serif")
+MDS.1000 <- limma::plotMDS(DGE.Data, top = 1000, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 1,000", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 1,000 genes
+```
+<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 2. The multidimensional scaling plot for the 1000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br>
+<br>
+<br>
+```{r - MDS Top 10000, fig.align = "center" }
+par(mar = c(4,4,1.5,.5), family ="serif")
+MDS.10000 <- limma::plotMDS(DGE.Data, top = 10000, gene.selection = "pairwise",dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 10,000", labels = NULL, cex = 2)
+legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
+# MDS plot for top 10,000 genes
+```
+<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 3. The multidimensional scaling plot for the 10000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br>
+<br>
+<br>
+```{r - DE Volcano Plot,fig.height = 7, fig.width = 9, fig.align = "center" }
+Volcano.Plots <- plotly::ggplotly(ggplot((F.tests$PreCold.PreWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "Pre-Cold vs. Pre-Warm")) %>%
+  bind_rows( (F.tests$PreCold.PostCold$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "Pre-Cold vs. Post-Cold"))) %>%
+  bind_rows( (F.tests$PostCold.PostWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "Post-Cold vs. Post-Warm"))) %>%
+  bind_rows( (F.tests$Prewarm.PostWarm$All.Results$table %>%
+  tibble::as_tibble(rownames = "Gene") %>%
+  mutate(comparision = "Pre-Warm vs. Post-Warm")))) +
+    aes(y = -log10(FDR), x = logFC, text = paste("Symbol:", Gene)) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = -log10(0.05), linetype = "longdash", colour = "grey", size = 1) +
+  facet_wrap(~ comparision) +
+  labs( title = "Volcano plots",
+        subtitle = "Kryptolebias marmoratus",
+        caption = paste0("produced on ", Sys.time())) +
+  theme_bw() +
+  theme(
+    text = element_text(family = "serif")))
+  
+# Here I create an interactive volcano plot. The gray line is the p-value cut off. The vertical lines designate a log fold change of at least |1|.
+
+Volcano.Plots
+# Display the interactive volcano plots.
+```
+<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 4. The four-panel interactive plot is faceted by the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm). Each point is a gene, and each panel has the negative log10 of the false discover rate adjust p-value (log odds probability) on the y- axis and the log fold change on the y axis. The dashed grey line is the significance cut off (FDR < 0.05); therefore, any genes above the line are significantly differentially expressed between the treatments.</span>
+<br>
+<br>
+
+<h1 style = "font-weight:normal;color:#000000; font-size = 24px; font-family:Times, serif">Supporting Tables</h1> 
+<br>
+
+<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 1. The interactive table includes the fisher’s exact test gene ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, Source, and term name. Term ID refers to the numerical code for the term name, while term name is the gene ontology. Source is the gene ontology the term belongs too (Biological Process, Molecular Function, Cellular Component).</span>
+```{r, Temperature Table}
+DT::datatable(Temperature.data,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                                             keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20,
+                                             columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+# Make the interactive table
+```
+<br>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 2. The table contains read information per sample. Each sample is identified their sample name along with the number of reads after trimming, subsampling, and the percentage of the subsampled reads that were mapped to a gene.</span>
+```{r, Number of Reads Table}
+data.frame(Sample.Name = c("RPRW_112","RPOC_250","RPOC_255","RPOC_259","RPRW_272","RPOW_283","RPOW_285","RPRC_28","RPRC_38","RPRW_39","RPOW_58","RPRC_9"),
+           Trimmed = c("8,326,750","8,158,694","7,454,576","7,176,142","14,121,180","8,788,552","10,008,752","60,088,608","50,075,722","49,014,042","9,886,540","11,685,830"),
+           Subsampled = c("8,326,750","8,158,694","7,454,576","7,176,142","14,121,180","8,788,552","10,008,752","40,000,000","40,000,000","40,000,000","9,886,540","11,685,830"),
+           Percent.Mapped = c(42.5,85.97,83.69,84.1,45.82,84.39,90.14,90.83,90.09,91.6,83.99,83.95)) %>%
+  gt::gt(.) %>%
+  gt::cols_label(
+    Sample.Name = "Sample Name",
+    Trimmed = "Trimmed",
+    Subsampled = "Subsampled",
+    Percent.Mapped = "Percent Mapped (%)") %>%
+  gt::cols_align(
+  align = c("center"),
+  columns = everything()
+) %>%
+  gt::tab_options(table.font.names = "serif")
+```
+<br>
+<br>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 3. The interactive table contains all the differential gene expression results. Each row contains the gene being analyzed, the log fold change, the log Counts per Million (CPM), the false discovery corrected p value (FDR), and the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm).</span>
+```{r - DE Tables}
+DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(Comparison  = "Pre-Cold vs. Pre-Warm")) %>%
+  bind_rows( (F.tests$PreCold.PostCold$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(Comparison  = "Pre-Cold vs. Post-Cold"))) %>%
+  bind_rows( (F.tests$PostCold.PostWarm$Significant.Table$table %>%
+  as.tibble(rownames = "Gene") %>%
+  mutate(Comparison  = "Post-Cold vs. Post-Warm")))  %>%
+  select(Gene, logFC, logCPM, FDR, Comparison) %>%
+  dplyr::rename("Log Fold Change" = logFC,
+         "Log Counts per Million" = logCPM)
+# I convert the results to a tibble with the comparisons as a separate column.This table only has significantly deferentially expressed genes.
+
+
+Int.DE.Table <- DT::datatable(DE.Table,
+                              extensions = c('KeyTable', 'FixedHeader'),
+                              filter = 'top',
+                              options = list(initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                                             keys = TRUE,
+                                             searchHighlight = TRUE,
+                                             pageLength = 20,
+                              columnDefs = list(list(className = 'dt-center', targets = "_all")))) %>%
+  DT::formatRound(columns=c(2:4), digits=3)
+# Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was preformed. 
+
+Int.DE.Table
+# Display the interactive table.
+```
+
+<br>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 4. The interactive table includes the fisher’s exact test gene ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, Source, and term name. Term ID refers to the numerical code for the term name, while term name is the gene ontology. Source is the gene ontology the term belongs too (Biological Process, Molecular Function, Cellular Component).</span>
+```{r - DE GO Table}
+DT::datatable(apply((Fishers.gost.table %>%
+                       dplyr::rename(Significant = significant,
+                                     "P Value" = p_value,
+                                     "Term Size" = term_size,
+                                     "Query Size" = query_size,
+                                     "Intersection Size" = intersection_size,
+                                     Precision = precision,
+                                     Recall = recall,
+                                     Source = source,
+                                     "Term Name" = term_name,
+                                     "Effective Domain Size" = effective_domain_size,
+                                     "Source Order" = source_order,
+                                     Parents = parents,
+                                     "Evidence Codes" = evidence_codes,
+                                     Intersection = intersection)),2,as.character),
+                              extensions = c('KeyTable', 'FixedHeader', 'Buttons', 'FixedColumns','Responsive'),
+              options = list(
+                initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                dom = 'Bfrtip',
+                buttons = list(list(extend = 'colvis')),
+                fixedColumns = list(leftColumns = 2),
+                scrollX = TRUE,
+                fixedHeader = TRUE,
+                columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                keys = TRUE,
+                searchHighlight = TRUE,
+                pageLength = 20))
+```
