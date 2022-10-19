@@ -33,6 +33,9 @@ output:
 
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, number_sections = FALSE)
+load("C:/Users/antho/Desktop/Ryan_Research/Rivulus_Projects/Embryo_RNA/Code/.RData")
+
 library(rmarkdown)
 library(tinytex)
 library(knitr)
@@ -40,23 +43,12 @@ library(tidyverse)
 library(ggplot2)
 library(gt)
 library(DT)
+library(lubridate)
+```
+
+```{r, Temperature data, echo=FALSE, eval=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, number_sections = FALSE)
 load("C:/Users/antho/Desktop/Ryan_Research/Rivulus_Projects/Embryo_RNA/Code/.RData")
-```
-```{r - Required Code, eval=FALSE}
-#This is the code too create all the objects required to knit.
-library(edgeR)
-library(DESeq2)
-library(statmod)
-library(WGCNA)
-library(gprofiler2)
-library(tidyverse)
-library(heatmaply)
-library(limma)
-library(plotly)
-library(tibble)
-library(DT)
-library(gt)
 
 Temperature.data <- lapply(list.files( "C:/Users/antho/OneDrive - The University of Alabama/Professional/Ryan_Research/Rivulus_Projects/Embryo Transcriptomics/Data/Temperature Data/20C",full.names=TRUE), read.table, sep = ",") %>%
   bind_rows(.) %>%
@@ -72,164 +64,6 @@ Temperature.data <- lapply(list.files( "C:/Users/antho/OneDrive - The University
   select(-V2) %>%
   rename( Date = V1,
           Temperature = V3)))
-
-setwd("C:/Users/antho/Desktop/Embryo_RNA")
-# Set the working directory.
-
-mydata = read.csv("gene_count_matrix_kmar.csv", header=T, row.names=1)
-# Gene count matrix
-
-Sample.Data = read.csv("sampledata_kmar.csv", header=T, row.names=1)
-# Sample Information
-
-
-Data.filtered <- mydata %>%
-  dplyr::filter(rowSums(.) != 0) %>% 
-  # Filter out rows that add to 0.
-  dplyr::filter(rowSums(edgeR::cpm(.) > 0.5) >=3) %>%
-  # Filter out rows that had less than 0.5 counts per million in at least 3 individuals.
-  dplyr::select(order(colnames(.)))
-  # Order the columns by the column name
-
-rownames(Data.filtered) <- gsub("gene-", "", rownames(Data.filtered))
-# Rename the rows so that they are just the gene name.
-
-
-Sample.Data <- Sample.Data[ order(names(Data.filtered)), ] %>%
-  # Order the rows to match the filtered data %>%
-  dplyr::mutate(Treatment = as.factor(Treatment))
-  # Convert treatment to a factor for DESeq
-
-Transformed.DESeq.Matrix <- DESeq2::DESeqDataSetFromMatrix(countData = Data.filtered, colData = Sample.Data, design = ~Treatment) %>%
-  # Setup DESeq data from count matrix.
-  DESeq2::varianceStabilizingTransformation(., blind = T) %>%
-  # Run Transformation blind to the experimental design.
-  assay(.)
-  # Extract the transformed data as a matrix.
-
-DGE.Data <- edgeR::DGEList(counts = Data.filtered, group = as.factor(colnames(Data.filtered))) %>%
-  # Create a DGEList.
-  edgeR::calcNormFactors(.)
-  # Calculate the normalization factors per sample.
-
-Design <- model.matrix(~0 + Sample.Data$Treatment, data = DGE.Data$samples)
-# Here we create the design matrix with treatment as the blocking factor
-
-DGE.Data <- edgeR::estimateDisp(DGE.Data, Design, robust = TRUE)
-# Here we get the maximized profile log-likelihoods for each tag. We use this to plot the biological coefficient of variation.
-
-DGE.Fit <- edgeR::glmQLFit(DGE.Data, Design, robust = TRUE)
-# We fit a quasi-likelihood negative binomial generalized log-linear model to the gene expression count data.
-
-F.test.Fun <- function(Data, contrast, filename, filename.up, filename.down, name){
-  library(edgeR)
-  #This library is for the actual F-tests.
-  library(tidyverse)
-  #This library is for separating the up regulated genes from the down regulated genes.
-  
-  F.test.results <- edgeR::glmQLFTest(Data, contrast = contrast)
-  #This fits a quasi-likelihood negative binomial generalized log-linear model to the gene count data using contrasts and a DGEList object.
-
-  write.csv(edgeR::topTags(F.test.results, n=20000),filename)
-  #Write the model results to a csv.
-  
-  table <- edgeR::decideTestsDGE(F.test.results, p.value = 0.05)
-  #Create a table with significant genes only.
-  
-      results <- edgeR::topTags(F.test.results, n = 4000, sort.by = "logFC")
-    #this result table is used for volcano plots
-  
-  if((summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3]) > 0){
-    #The "if statement handles" the case in which there are no significant genes.
-    
-    results.sig <- edgeR::topTags(F.test.results, n = summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[1]+summary(edgeR::decideTestsDGE(F.test.results, p.value = 0.05))[3], p.value = 0.05)
-    #We get the significant results from the above complete table.
-    
-    results.up = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC > 0 & FDR < 0.05) %>% arrange(FDR)
-    #Here we get the up regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
-    
-    results.down = as.tibble(results$table) %>% mutate(Gene = rownames(results)) %>% column_to_rownames(., var = "Gene") %>% filter(logFC < 0 & FDR < 0.05) %>% arrange(FDR)
-    #Here we get the down regulated genes from the significant results and order then by FDR. The ordering ensures we can do a rank order GO enrichment analysis without any additional formatting.
-    
-    write.table(results.up, file = filename.up, quote=F, row.names = F, col.names = F)
-    #Write a csv for the up regulated genes. 
-    
-    write.table(results.down, file = filename.down, quote=F, row.names = F, col.names = F)
-    #Write a csv for the down regulated genes. 
-    
-    return(name <- list(Results = F.test.results,
-            Significance.Table = table,
-            Significant.Table = results.sig,
-            All.Results = results,
-            Up = results.up,
-            Down = results.down))
-    #Here we return a list of all the objects needed in downstream analysis.
-    }else{
-      return(
-        name <- list(Results = F.test.results,
-                          Significance.Table = table,
-                     All.Results = results))
-      #Here we return a list of all the objects needed in downstream analysis when there are no significant genes. 
-              }
-}
-#The function condenses the F-tests to a single mapply call over a list instead of separate code for each comparison. 
-
-F.test.Data.List <- list( Data = list(DGE.Fit,
-                                      DGE.Fit,
-                                      DGE.Fit,
-                                      DGE.Fit),
-                          Names = list("PreCold.PreWarm",
-                                    "PreCold.PostCold",
-                                    "PostCold.PostWarm",
-                                    "Prewarm.PostWarm"),
-                          contrasts = list(PreC.PreW = c(1,-1,0,0),
-                                           PreC.PoC = c(1,0,-1,0),
-                                           PoC.PoW = c(0,0,1,-1),
-                                           PreW.PoW =c(0,1,0,-1)),
-                          filenames = list(PreC.PreW = "RHL.precoldvsprewarm.csv",
-                                           PreC.PoC = "RHL.precoldvspostcold.csv",
-                                           PoC.PoW = "RHL.postcoldvspostwarm.csv",
-                                           PreW.PoW ="RHL.postcoldvspostwarm.csv"),
-                          filenames.up = list(PreC.PreW = "RHL-UP-PreColdvsPreWarm-0.05.txt",
-                                              PreC.PoC = "RHL-UP-PreColdvsPostCold-0.05.txt",
-                                              PoC.PoW = "RHL-UP-PostColdvsPostWarm-0.05.txt",
-                                              PreW.PoW = "RHL-UP-PreWarmvsPostWarm-0.05.txt"),
-                          filenames.down = list(PreC.PreW = "RHL-DOWN-PreColdvsPreWarm-0.05.txt",
-                                                PreC.PoC = "RHL-DOWN-PreColdvsPostCold-0.05.txt",
-                                                PoC.PoW = "RHL-DOWN-PostColdvsPostWarm-0.05.txt",
-                                                PreW.PoW = "RHL-DOWN-PreWarmvsPostWarm-0.05.txt"))
-#This is the data object used for the F-tests. When calling mapply you must have the same number of items in each list; therefore, we have four copies of the data.
-
-F.tests <- mapply(FUN = F.test.Fun,  Data = F.test.Data.List$Data , contrast = F.test.Data.List$contrasts, filename = F.test.Data.List$filenames, filename.up = F.test.Data.List$filenames.up, filename.down = F.test.Data.List$filenames.down, name = F.test.Data.List$Names) %>%
-  # We first run the F-test pipeline for each comparison. 
-  setNames(F.test.Data.List$Names)
-  # We also name each list item by the comparison. 
-
-GO.input.list <- lapply((list(F.tests$PreCold.PreWarm$Up, 
-                              F.tests$PreCold.PreWarm$Down, 
-                              F.tests$PreCold.PostCold$Up, 
-                              F.tests$PreCold.PostCold$Down, 
-                              F.tests$PostCold.PostWarm$Up, 
-                              F.tests$PostCold.PostWarm$Down)), rownames)
-# We create a list with all the significantly up and down regulated differently expressed genes for each comparison and extract just the rownames. We did not do this for the prewarm and post warm comparison because no genes were deferentially expressed.
-
-names(GO.input.list) <- c("Pre-Cold vs. Pre-Warm Up",
-                          "Pre-Cold vs. Pre-Warm Down",
-                          "Pre-Cold vs. Post-Cold Up",
-                          "Pre-Cold vs. Post-Cold Down",
-                          "Post-Cold vs. Post-Warm Up",
-                          "Post-Cold vs. Post-Warm Down")
-
-Fishers.gost.res <- gost(GO.input.list, organism = "kmarmoratus", correction_method = "fdr", exclude_iea = FALSE, sources = c("GO:BP", "GO:CC", "GO:MF"), ordered_query = FALSE, domain_scope = "annotated")
-# We run gost on all the GO libraries. We use a list of the data which is differentiated by the query column.
-
-
-Fishers.gost.table <- as_tibble(Fishers.gost.res$result) %>%
-  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% 
-  dplyr::mutate(query = gsub("Up", "", query),
-                query = gsub("Down", "", query)) %>%
-  rename(Comparison = query, FDR = p_value, "Term ID" = term_id, Source = source, "Term Name" = term_name) %>%
-  select(Comparison,FDR,"Term ID",Source,"Term Name")
 ```
 
 <h1 style = "font-weight: normal; color: #000000; font-size = 24px; font-family:Times, serif">Supporting Figures</h1>
