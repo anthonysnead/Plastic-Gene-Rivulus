@@ -1,40 +1,53 @@
 ---
-title: <span style = "font-weight:normal; color:#000000; font-size = 40px; font-family:Times, serif"><center> Plasticity in Gene Expression in Response to Embryonic Environment Supporting Information <center></span>
-author: <h4 style = "font-weight:normal; color:#000000; font-size = 12px; font-family:Times, serif"> <br> Anthony A Snead<sup>1</sup>, Corey R Quackenbush<sup>2</sup>, Shawn Trojahn<sup>2</sup>, Anna McDonald<sup>2</sup>, Luana Lins<sup>2</sup> Chris Cornelius<sup>1</sup>, Paula E Adams<sup>1</sup>, Dengke Ma<sup>3</sup> Yuying Hsu<sup>4</sup>, Eric Haag<sup>5</sup>, Frédéric Silvestre<sup>6</sup>, Akira Kanamori<sup>7</sup>, Ryan L Earley<sup>1\*</sup>, Joanna L Kelley<sup>2\*</sup></h4>
 output:
   html_document:
     toc: false
     toc_float: false
-    fig_width: 8
+    fig_width: 6
     fig_height: 6
     fig_caption: true
 ---
+<style type="text/css">
+.main-container {
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+</style>
 <br>
 <br>
+<span style = "font-weight:normal; color:#000000; font-size: 28px; font-family:Times, serif;">
+<center>Plasticity in Gene Expression in Response to Embryonic Environment Supporting Information </center></span>
 <br>
-<span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif"> Affiliations:</span>
+<span style = "font-weight:normal; color:#000000; font-size: 12px; font-family:Times, serif">
+Anthony A Snead<sup>1</sup>, Corey R Quackenbush<sup>2</sup>, Shawn Trojahn<sup>2</sup>, Anna McDonald<sup>2</sup>, Luana Lins<sup>3</sup> Chris Cornelius<sup>1</sup>, Paula E Adams<sup>4</sup>, Dengke Ma<sup>5</sup> Yuying Hsu<sup>6</sup>, Eric Haag<sup>7</sup>, Frédéric Silvestre<sup>8</sup>, Akira Kanamori<sup>9</sup>, Ryan L Earley<sup>1\*</sup>, Joanna L Kelley<sup>2\*</sup></p>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>1</sup>Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>2</sup>School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164</span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>3</sup></span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>4</sup></span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>5</sup></span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>6</sup></span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>7</sup></span>
+<span style = "font-weight:bold;color:#000000; font-size: 12px; font-family:Times, serif"> Affiliations: </span> <br>
+<span style = "font-weight:normal; color:#000000; font-size: 12px; font-family:Times, serif">
+<sup>1</sup>Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487
+<br>
+<sup>2</sup>School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164
+<br><sup>3</sup>Australian National Insect Collection, CSIRO, Canberra, Australia
+<br><sup>4</sup>Department of Biological Sciences, Auburn University, Auburn, AL, USA
+<br><sup>5</sup>Cardiovascular Research Institute and Department of Physiology, University of California San Francisco, San Francisco, California, USA
+<br><sup>6</sup>Department of Life Sciences, National Taiwan Normal University, Taipei 116, Taiwan
+<br><sup>7</sup>Department of Biology and Biological Sciences Graduate Program, University of Maryland, College Park, MD 20742
+<br><sup>8</sup>Laboratory of Evolutionary and Adaptive Physiology, Institute of Life, Earth, and the Environment, University of Namur, 61 Rue de Bruxelles, 5000, Namur, Belgium
+<br><sup>9</sup>Division of Biological Science, Graduate School of Science, Nagoya University, Nagoya, Chūbu, Japan </span>
 <br>
 <br>
+<span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif">Authors for correspondence:</span>
 <br>
-<br><span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif">Authors for correspondence:</span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Joanna L. Kelley, School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164, USA, 509-335-0037 (phone), 509-335-4848 (fax), joanna.l.kelley@wsu.edu</span>
-<br><span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Ryan Earley, Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
+<span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Joanna L. Kelley, School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164, USA, 509-335-0037 (phone), 509-335-4848 (fax), joanna.l.kelley@wsu.edu
+<br>
+<sup>\*</sup>Ryan Earley, Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
 <br>
 <br>
-<br>
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, number_sections = FALSE)
-load("C:/Users/antho/Desktop/Ryan_Research/Rivulus_Projects/Embryo_RNA/Code/.RData")
+rmarkdown::find_pandoc(version = '2.9.1')
+load("C:/Users/antho/Desktop/Ryan_Research/Rivulus_Projects/Embryo_Transcriptomics/Plastic-Gene-Rivulus/.RData")
 
 library(rmarkdown)
 library(tinytex)
@@ -65,42 +78,97 @@ Temperature.data <- lapply(list.files( "C:/Users/antho/OneDrive - The University
   rename( Date = V1,
           Temperature = V3)))
 ```
-
-<h1 style = "font-weight: normal; color: #000000; font-size = 24px; font-family:Times, serif">Supporting Figures</h1>
-
+<span style = "font-weight: bold; color: #000000; font-size: 16px; font-family:Times, serif">Developmental Formula</span>
 <br>
-```{r - MDS Top 500, fig.align = "center"}
+<br>
+<p style = "text-indent: 25px; line-height: 2em; font-weight:normal;color:#000000; font-size:12px; font-family:Times, serif">The formula to estimate when embryos should be removed from treatment was derived from a non-linear regression with “developmental stage (DS)” (1-35, from Harrington 1968) as the predictor and “hours of development” (0-310, from Mourabit et al. 2011) as the response. The resulting formula was: </p> 
+<br>
+<span style = "font-weight:bold;color:#000000; font-size: 12px; font-family:Times, serif"><center>
+Hours of Development ~ -33.04 + 4.37<span>&#42;</span>DS - 0.07<span>&#42;</span>DS<sup>2</sup> - 0.007<span>&#42;</span>DS<sup>3</sup> + 0.0017<span>&#42;</span>DS<sup>4</sup> + 0.00009<span>&#42;</span>DS<sup>5</sup>
+</center></span> 
+<br>
+<p style = "text-indent: 25px;line-height: 2em; font-weight:normal;color:#000000; font-size: 12px; font-family:Times, serif">
+Upon collecting the egg from its mother, we scored developmental stage (DS) and, using the above formula, calculated the estimated number of hours that the embryo had already spent developing and thus, how long it should remain in treatment before being sampled. We subtracted that value from 120 (with 120 hours being the time it takes the animal to develop to stage 29), 140 hours (stage 30), 180 hours (stage 31), 211 hours (stage 32), 240 hours (stage 33), or 310 hours (stage 34) (Mourabit et al. 2011). This value then was converted to days, and dictated when we sampled the animals from treatment. We confirmed DS under a stereomicroscope when the embryo was removed from treatment, and it was this confirmed DS that was used to determine whether the embryo was pre- or post-thermolabile period. 
+</p>
+<br>
+<span style = "font-weight:bold; color:#000000; font-size: 16px; font-family:Times, serif">
+References
+</span>
+<br>
+<div style= "text-indent: -25px; padding-left: 25px; font-weight:normal;color:#000000; font-size: 12px; font-family:Times, serif;"> 
+<br>
+<p>Harrington, Jr RW (1968) Delimitation of the thermolabile phenocritical period of sex determination and differentiation in the ontogeny of the normally hermaphroditic fish Rivulus marmoratus Poey. <em>Physiological Zoology</em> 41: 447-460.</p>
+
+<p>Mourabit S, Edenbrow M, Croft DP, Kudoh T (2011). Embryonic development of the self-fertilizing mangrove killifish <em>Kryptolebias marmoratus</em>. <em>Developmental Dynamics</em> 240: 1694-1704.</p>
+</div>
+<br>
+<br>
+<span style = "font-weight: bold; color: #000000; font-size: 16px; font-family:Times, serif">Supporting Figures</span>
+<br>
+<br>
+```{r, Developmental Formula,fig.height = 5, fig.align='center'}
+Developmental.Df <- read.csv(file = paste(getwd(), "Data/Dev_Data/Dev_Data.csv", sep = "/"))
+
+ggplot2::ggplot(data = Developmental.Df, aes(x = Stage_M, y = Hours)) + 
+  geom_smooth(method = "loess", fullrange = T, span = .5, se=F,
+              color = "darkgrey", linewidth = .75 ) +
+  geom_point() +
+  scale_y_continuous(limits = c(0,325), breaks = seq(0, 300, by = 50)) +
+  scale_x_continuous(limits = c(0,35), breaks = seq(0, 35, by = 5)) +
+  labs(x = "Developmental Stage", y = "Number of Hours Developing") +
+  annotate("text", x = 15, y = 300, family = "serif", size = 4.5,
+           label = paste("'Hours of Development ~ -33.04 + 4.37*DS - 0.07*'*DS^2~'-'", sep = ""),
+           parse = TRUE) +
+  annotate("text", x = 11, y = 275, family = "serif", size = 4.5,
+           label = paste("'0.007*'*DS^3~'+ 0.0017*'*DS^4~'+0.00009*'*DS^5", sep = ""),
+                                                  parse = TRUE) +
+  theme(panel.grid.major = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_text(family = "serif", size = 12),
+        axis.text = element_text(color = "black", size = 10, family = "serif"))
+  
+
+
+```
+<br><span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Figure 1 The graph visualizing the non-linear regression with developmental stage, shortened to “DS” for the equation, as the predictor (x-axis) and the hours of development as the response (y-axis). The points are data used to derive the formula, and the line is the non-linear regression. The equation is displayed in the upper right corner of the graph for reference.</span>
+<br>
+<br>
+<br>
+
+
+```{r, MDS Top 500, fig.align = 'center'}
 par(mar = c(4,4,1.5,.5), family ="serif")
 MDS.500 <- limma::plotMDS(DGE.Data, top = 500, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 500", labels = NULL, cex = 2)
 legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
 # MDS plot for top 500 genes
 ```
-<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 1. The multidimensional scaling plot for the 500 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br><span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Figure 2 The multidimensional scaling plot for the 500 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
 <br>
 <br>
 <br>
 
-```{r - MDS Top 1000, fig.align = "center" }
+```{r, MDS Top 1000, fig.align = 'center' }
 par(mar = c(4,4,1.5,.5), family ="serif")
 MDS.1000 <- limma::plotMDS(DGE.Data, top = 1000, gene.selection = "pairwise", dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 1,000", labels = NULL, cex = 2)
 legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
 # MDS plot for top 1,000 genes
 ```
-<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 2. The multidimensional scaling plot for the 1000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br><span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Figure 3 The multidimensional scaling plot for the 1000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
 <br>
 <br>
 <br>
-```{r - MDS Top 10000, fig.align = "center" }
+```{r, MDS Top 10000, fig.align = "center" }
 par(mar = c(4,4,1.5,.5), family ="serif")
 MDS.10000 <- limma::plotMDS(DGE.Data, top = 10000, gene.selection = "pairwise",dim.plot = c(1,2), pch = c(24,24,24, 15,15,15, 21,21,21, 18, 18, 18), xlab = "MDS axis 1", ylab = "MDS axis 2", main = "MDS: Top 10,000", labels = NULL, cex = 2)
 legend("bottomright", legend = c("Pre-Cold", "Pre-Warm", "Post-Cold", "Post-Warm"), pch = c(24, 15, 21, 18))
 # MDS plot for top 10,000 genes
 ```
-<br><span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 3. The multidimensional scaling plot for the 10000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
+<br><span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Figure 4 The multidimensional scaling plot for the 10000 genes with the largest fold change between samples using the first two principal components. Each group (Pre-Cold, Pre-Warm, Post-Cold, and Post-Warm) is differentiated by shape and color in the legend.</span>
 <br>
 <br>
 <br>
-```{r - DE Volcano Plot,fig.height = 7, fig.width = 9, fig.align = "center" }
+```{r - DE Volcano Plot, fig.height = 7, fig.width = 7, fig.align = "center" }
 Volcano.Plots <- plotly::ggplotly(ggplot((F.tests$PreCold.PreWarm$All.Results$table %>%
   tibble::as_tibble(rownames = "Gene") %>%
   mutate(comparision = "Pre-Cold vs. Pre-Warm")) %>%
@@ -129,14 +197,14 @@ Volcano.Plots <- plotly::ggplotly(ggplot((F.tests$PreCold.PreWarm$All.Results$ta
 Volcano.Plots
 # Display the interactive volcano plots.
 ```
-<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Figure 4. The four-panel interactive plot is faceted by the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm). Each point is a gene, and each panel has the negative log10 of the false discover rate adjust p-value (log odds probability) on the y- axis and the log fold change on the y axis. The dashed grey line is the significance cut off (FDR < 0.05); therefore, any genes above the line are significantly differentially expressed between the treatments.</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Figure 5 The four-panel interactive plot is faceted by the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm). Each point is a gene, and each panel has the negative log10 of the false discover rate adjust p-value (log odds probability) on the y- axis and the log fold change on the y axis. The dashed grey line is the significance cut off (FDR < 0.05); therefore, any genes above the line are significantly differentially expressed between the treatments.</span>
 <br>
 <br>
 
-<h1 style = "font-weight:normal;color:#000000; font-size = 24px; font-family:Times, serif">Supporting Tables</h1> 
+<span style = "font-weight:bold;color:#000000; font-size: 16px; font-family:Times, serif">Supporting Tables</span> 
 <br>
 
-<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 1. The interactive table includes the fisher’s exact test gene ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, Source, and term name. Term ID refers to the numerical code for the term name, while term name is the gene ontology. Source is the gene ontology the term belongs too (Biological Process, Molecular Function, Cellular Component).</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 1 The interactive table includes all the temperature measurements for each treatment ( Warm = 25°C, Cold = 20°C) for all dates. The date column contains the date (Year-Month-Day) and time (Hour:Minutes:Seconds). Drastic changes in temperature correspond with the retrieval of the temperature probes to download data. </span>
 ```{r, Temperature Table}
 DT::datatable(Temperature.data,
                               extensions = c('KeyTable', 'FixedHeader'),
@@ -154,7 +222,7 @@ DT::datatable(Temperature.data,
 ```
 <br>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 2. The table contains read information per sample. Each sample is identified their sample name along with the number of reads after trimming, subsampling, and the percentage of the subsampled reads that were mapped to a gene.</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 2 The table contains read information per sample. Each sample is identified their sample name along with the number of reads after trimming, subsampling, and the percentage of the subsampled reads that were mapped to a gene.</span>
 ```{r, Number of Reads Table}
 data.frame(Sample.Name = c("RPRW_112","RPOC_250","RPOC_255","RPOC_259","RPRW_272","RPOW_283","RPOW_285","RPRC_28","RPRC_38","RPRW_39","RPOW_58","RPRC_9"),
            Trimmed = c("8,326,750","8,158,694","7,454,576","7,176,142","14,121,180","8,788,552","10,008,752","60,088,608","50,075,722","49,014,042","9,886,540","11,685,830"),
@@ -175,7 +243,7 @@ data.frame(Sample.Name = c("RPRW_112","RPOC_250","RPOC_255","RPOC_259","RPRW_272
 <br>
 <br>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 3. The interactive table contains all the differential gene expression results. Each row contains the gene being analyzed, the log fold change, the log Counts per Million (CPM), the false discovery corrected p value (FDR), and the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm).</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 3. The interactive table contains all the differential gene expression results. Each row contains the gene being analyzed, the log fold change, the log Counts per Million (CPM), the false discovery corrected p value (FDR), and the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm).</span>
 ```{r - DE Tables}
 DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
   as.tibble(rownames = "Gene") %>%
@@ -213,7 +281,7 @@ Int.DE.Table
 
 <br>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size = 10px; font-family:Times, serif">SI Table 4. The interactive table includes the fisher’s exact test gene ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, Source, and term name. Term ID refers to the numerical code for the term name, while term name is the gene ontology. Source is the gene ontology the term belongs too (Biological Process, Molecular Function, Cellular Component).</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 4 The interactive table includes the fisher’s exact test gene ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, Source, and term name. Term ID refers to the numerical code for the term name, while term name is the gene ontology. Source is the gene ontology the term belongs too (Biological Process, Molecular Function, Cellular Component).</span>
 ```{r - DE GO Table}
 DT::datatable(apply((Fishers.gost.table %>%
                        dplyr::rename(Significant = significant,

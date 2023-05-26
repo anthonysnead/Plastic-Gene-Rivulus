@@ -877,10 +877,10 @@ gem.Fishers %>% group_by(query) %>%
 
 
 Fishers.gost.table <- as_tibble(Fishers.gost.res$result) %>% 
-  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% dplyr::mutate(query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW")) %>% rename(Comparision = query)
+  mutate(Direction = case_when(stringr::str_detect(query,"Up") ~ "Up",  stringr::str_detect(query, "Down") ~ "Down")) %>% dplyr::mutate(query = case_when( stringr::str_detect(query, "PrC_PrW") ~ "PrC_PrW", stringr::str_detect(query, "PrC_PoC") ~ "PrC_PoC", stringr::str_detect(query, "PoC_PoW") ~ "PoC_PoW")) %>% rename(Comparison = query)
 # Here we convert the results into a tibble and swap query for actual comparison names.
 
-Fishers.GO.Counts <- Fishers.gost.table %>% group_by(Comparision, Direction, source) %>% tally(.)
+Fishers.GO.Counts <- Fishers.gost.table %>% group_by(Comparison, Direction, source) %>% tally(.)
 # We count the various GO terms in each category. 
 
 DT::datatable(Fishers.gost.table,
