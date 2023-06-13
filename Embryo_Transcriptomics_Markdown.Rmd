@@ -749,29 +749,59 @@ Here we make interactive tables and graphs from the F-test results
 
 #### Interactive DEG Table
 
+```{r, get gene names}
+# get gene names for the species
+Gene_Names <- biomaRt::useEnsembl("genes", dataset = "kmarmoratus_gene_ensembl")
+
+```
+
 This is how we make an interactive table from the data.
 
 ```{r - DE Tables}
 DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
   as.tibble(rownames = "Gene") %>%
-  mutate(comparision = "PreCold vs PreWarm")) %>%
+  mutate(Comparison  = "Pre-Cold vs. Pre-Warm")) %>%
   bind_rows( (F.tests$PreCold.PostCold$Significant.Table$table %>%
   as.tibble(rownames = "Gene") %>%
-  mutate(comparision = "PreCold vs PostCold"))) %>%
+  mutate(Comparison  = "Pre-Cold vs. Post-Cold"))) %>%
   bind_rows( (F.tests$PostCold.PostWarm$Significant.Table$table %>%
   as.tibble(rownames = "Gene") %>%
-  mutate(comparision = "PostCold vs PostWarm"))) 
-# I convert the results to a tibble with the comparisons as a separate column. This table only has significantly deferentially expressed genes.
+  mutate(Comparison  = "Post-Cold vs. Post-Warm")))  %>%
+  select(Gene, logFC, logCPM, FDR, Comparison) %>%
+  dplyr::rename("Log Fold Change" = logFC,
+         "Log Counts per Million" = logCPM) %>%
+  # I convert the results to a tibble with the comparisons as a separate column.This table only has significantly deferentially expressed genes.
+  dplyr::left_join(., biomaRt::getBM(filters = "external_gene_name", attributes = c("external_gene_name","ensembl_gene_id", "name_1006", "definition_1006"),
+                                     values =  .$Gene, mart= Gene_Names), by = c("Gene" = "external_gene_name"), multiple  = "all") %>%
+  dplyr::rename("GO Term Name" = "name_1006",
+                "Description" = "definition_1006",
+                "Gene ID" = "ensembl_gene_id") %>%
+  dplyr::select(Gene, "Gene ID", "Log Fold Change", "Log Counts per Million", FDR,
+                Comparison, "GO Term Name", Description) %>%
+  dplyr::group_by(Gene)
 
 
 Int.DE.Table <- DT::datatable(DE.Table,
-                              extensions = c('KeyTable', 'FixedHeader'),
+                              extensions = c('KeyTable', 'FixedHeader', 'RowGroup'),
                               filter = 'top',
-                              options = list(keys = TRUE,
+                              callback = JS(
+                                "table.on('click', 'tr.dtrg-group', function () {",
+                                "  var rowsCollapse = $(this).nextUntil('.dtrg-group');",
+                                "  $(rowsCollapse).toggleClass('hidden');",
+                                "});"
+                                ),
+                              options = list(initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                                             rowGroup = list(dataSrc = 1),
+                                             keys = TRUE,
                                              searchHighlight = TRUE,
-                                             pageLength = 20)) %>%
-  DT::formatRound(columns=c(2:5), digits=3)
-# Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was performed. 
+                                             pageLength = 20,
+                              columnDefs = list(list(className = 'dt-center', targets = "_all")))) %>%
+  DT::formatRound(columns=c(3:5), digits=3)
+# Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was preformed. 
 
 Int.DE.Table
 # Display the interactive table.

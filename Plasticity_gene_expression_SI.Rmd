@@ -20,25 +20,27 @@ output:
 <center>Plasticity in Gene Expression in Response to Embryonic Environment Supporting Information </center></span>
 <br>
 <span style = "font-weight:normal; color:#000000; font-size: 12px; font-family:Times, serif">
-Anthony A Snead<sup>1</sup>, Corey R Quackenbush<sup>2</sup>, Shawn Trojahn<sup>2</sup>, Anna McDonald<sup>2</sup>, Luana Lins<sup>3</sup> Chris Cornelius<sup>1</sup>, Paula E Adams<sup>4</sup>, Dengke Ma<sup>5</sup> Yuying Hsu<sup>6</sup>, Eric Haag<sup>7</sup>, Frédéric Silvestre<sup>8</sup>, Akira Kanamori<sup>9</sup>, Ryan L Earley<sup>1\*</sup>, Joanna L Kelley<sup>2\*</sup></p>
+Anthony A Snead<sup>1,8</sup>, Corey R Quackenbush<sup>2</sup>, Shawn Trojahn<sup>2</sup>, Anna L McDonald<sup>2</sup>, Luana Lins<sup>2,9</sup> Chris Cornelius<sup>1</sup>, Paula E Adams<sup>1,10</sup>, Dengke Ma<sup>3</sup> Yuying Hsu<sup>4</sup>, Eric Haag<sup>5</sup>, Frédéric Silvestre<sup>6</sup>, Akira Kanamori<sup>7</sup>, Ryan L Earley<sup>1\*</sup>, Joanna L Kelley<sup>2,11\*</sup></p>
 <br>
 <span style = "font-weight:bold;color:#000000; font-size: 12px; font-family:Times, serif"> Affiliations: </span> <br>
 <span style = "font-weight:normal; color:#000000; font-size: 12px; font-family:Times, serif">
 <sup>1</sup>Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487
 <br>
 <sup>2</sup>School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164
-<br><sup>3</sup>Australian National Insect Collection, CSIRO, Canberra, Australia
-<br><sup>4</sup>Department of Biological Sciences, Auburn University, Auburn, AL, USA
-<br><sup>5</sup>Cardiovascular Research Institute and Department of Physiology, University of California San Francisco, San Francisco, California, USA
-<br><sup>6</sup>Department of Life Sciences, National Taiwan Normal University, Taipei 116, Taiwan
-<br><sup>7</sup>Department of Biology and Biological Sciences Graduate Program, University of Maryland, College Park, MD 20742
-<br><sup>8</sup>Laboratory of Evolutionary and Adaptive Physiology, Institute of Life, Earth, and the Environment, University of Namur, 61 Rue de Bruxelles, 5000, Namur, Belgium
-<br><sup>9</sup>Division of Biological Science, Graduate School of Science, Nagoya University, Nagoya, Chūbu, Japan </span>
+<br><sup>3</sup>Cardiovascular Research Institute and Department of Physiology, University of California San Francisco, San Francisco, California, USA
+<br><sup>4</sup>Department of Life Sciences, National Taiwan Normal University, Taipei 116, Taiwan
+<br><sup>5</sup>Department of Biology and Biological Sciences Graduate Program, University of Maryland, College Park, MD 20742
+<br><sup>6</sup>Laboratory of Evolutionary and Adaptive Physiology, Institute of Life, Earth, and the Environment, University of Namur, 61 Rue de Bruxelles, 5000, Namur, Belgium
+<br><sup>7</sup>Division of Biological Science, Graduate School of Science, Nagoya University, Aichi 464-8602, Japan
+<br><sup>8</sup>Current address: Department of Biology, New York University, New York, NY 10003
+<br><sup>9</sup>Current address: Australian National Insect Collection, CSIRO, Canberra, Australia
+<br><sup>10</sup>Current address: Department of Biological Sciences, Auburn University, Auburn, AL, USA
+<br><sup>11</sup>Current address: Department of Ecology and Evolutionary Biology, University of California Santa Cruz, Santa Cruz, CA, USA</span>
 <br>
 <br>
 <span style = "font-weight:bold;color:#000000; font-size = 12px; font-family:Times, serif">Authors for correspondence:</span>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Joanna L. Kelley, School of Biological Sciences, Washington State University, 100 Dairy Road, Pullman, WA 99164, USA, 509-335-0037 (phone), 509-335-4848 (fax), joanna.l.kelley@wsu.edu
+<span style = "font-weight:normal;color:#000000; font-size = 12px; font-family:Times, serif"><sup>\*</sup>Joanna L. Kelley, Department of Ecology and Evolutionary Biology, University of California Santa Cruz, Santa Cruz, CA, USA, jokelley@ucsc.edu
 <br>
 <sup>\*</sup>Ryan Earley, Department of Biological Sciences, University of Alabama, 300 Hackberry Lane, Box 870344, Tuscaloosa, AL 35487</span>
 <br>
@@ -243,7 +245,7 @@ data.frame(Sample.Name = c("RPRW_112","RPOC_250","RPOC_255","RPOC_259","RPRW_272
 <br>
 <br>
 <br>
-<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 3. The interactive table contains all the differential gene expression results. Each row contains the gene being analyzed, the log fold change, the log Counts per Million (CPM), the false discovery corrected p value (FDR), and the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm).</span>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 3. The interactive table contains all the differential gene expression results. Each row contains the gene being analyzed, the gene ID, the log fold change, the log Counts per Million (CPM), the false discovery corrected p value (FDR), the comparison (Post-Cold vs. Post-Warm, Pre-Cold vs. Post-Cold, Pre-Cold vs. Pre-Warm, Pre-Warm vs. Post-Warm), the associated gene ontologies, and descriptions. The table is grouped by the gene because a gene can have multiple descriptions and gene ontologies. The groups are collapsible by clicking on the group row heading. All columns are searchable.</span>
 ```{r - DE Tables}
 DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
   as.tibble(rownames = "Gene") %>%
@@ -256,23 +258,38 @@ DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
   mutate(Comparison  = "Post-Cold vs. Post-Warm")))  %>%
   select(Gene, logFC, logCPM, FDR, Comparison) %>%
   dplyr::rename("Log Fold Change" = logFC,
-         "Log Counts per Million" = logCPM)
-# I convert the results to a tibble with the comparisons as a separate column.This table only has significantly deferentially expressed genes.
+         "Log Counts per Million" = logCPM) %>%
+  # I convert the results to a tibble with the comparisons as a separate column.This table only has significantly deferentially expressed genes.
+  dplyr::left_join(., biomaRt::getBM(filters = "external_gene_name", attributes = c("external_gene_name","ensembl_gene_id", "name_1006", "definition_1006"),
+                                     values =  .$Gene, mart= Gene_Names), by = c("Gene" = "external_gene_name"), multiple  = "all") %>%
+  dplyr::rename("GO Term Name" = "name_1006",
+                "Description" = "definition_1006",
+                "Gene ID" = "ensembl_gene_id") %>%
+  dplyr::select(Gene, "Gene ID", "Log Fold Change", "Log Counts per Million", FDR,
+                Comparison, "GO Term Name", Description) %>%
+  dplyr::group_by(Gene)
 
 
 Int.DE.Table <- DT::datatable(DE.Table,
-                              extensions = c('KeyTable', 'FixedHeader'),
+                              extensions = c('KeyTable', 'FixedHeader', 'RowGroup'),
                               filter = 'top',
+                              callback = JS(
+                                "table.on('click', 'tr.dtrg-group', function () {",
+                                "  var rowsCollapse = $(this).nextUntil('.dtrg-group');",
+                                "  $(rowsCollapse).toggleClass('hidden');",
+                                "});"
+                                ),
                               options = list(initComplete = JS("function(settings, json) 
                                                                {",
                                                                "$('body').css({'font-family':
                                                                'Times Roman'});",
                                                                "}"),
+                                             rowGroup = list(dataSrc = 1),
                                              keys = TRUE,
                                              searchHighlight = TRUE,
                                              pageLength = 20,
                               columnDefs = list(list(className = 'dt-center', targets = "_all")))) %>%
-  DT::formatRound(columns=c(2:4), digits=3)
+  DT::formatRound(columns=c(3:5), digits=3)
 # Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was preformed. 
 
 Int.DE.Table
