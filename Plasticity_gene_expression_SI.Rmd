@@ -211,7 +211,11 @@ Volcano.Plots
 DT::datatable(Temperature.data,
                               extensions = c('KeyTable', 'FixedHeader'),
                               filter = 'top',
-                              options = list(initComplete = JS("function(settings, json) 
+                              options = list(
+                                dom = 'Bfrtip',  # adds button toolbar
+                                buttons = list(
+                                  'csv'),
+                                  initComplete = JS("function(settings, json) 
                                                                {",
                                                                "$('body').css({'font-family':
                                                                'Times Roman'});",
@@ -270,27 +274,32 @@ DE.Table <- (F.tests$PreCold.PreWarm$Significant.Table$table %>%
   dplyr::group_by(Gene)
 
 
-Int.DE.Table <- DT::datatable(DE.Table,
-                              extensions = c('KeyTable', 'FixedHeader', 'RowGroup'),
-                              filter = 'top',
-                              callback = JS(
-                                "table.on('click', 'tr.dtrg-group', function () {",
-                                "  var rowsCollapse = $(this).nextUntil('.dtrg-group');",
-                                "  $(rowsCollapse).toggleClass('hidden');",
-                                "});"
-                                ),
-                              options = list(initComplete = JS("function(settings, json) 
-                                                               {",
-                                                               "$('body').css({'font-family':
-                                                               'Times Roman'});",
-                                                               "}"),
-                                             rowGroup = list(dataSrc = 1),
-                                             keys = TRUE,
-                                             searchHighlight = TRUE,
-                                             pageLength = 20,
-                              columnDefs = list(list(className = 'dt-center', targets = "_all")))) %>%
-  DT::formatRound(columns=c(3:5), digits=3)
-# Here I create and interactive table with the deferentially expressed genes. the comparison column is the test that was preformed. 
+Int.DE.Table <- datatable(
+  DE.Table,
+  extensions = c('KeyTable', 'FixedHeader', 'RowGroup', 'Buttons'),
+  filter = 'top',
+  callback = JS(
+    "table.on('click', 'tr.dtrg-group', function () {",
+    "  var rowsCollapse = $(this).nextUntil('.dtrg-group');",
+    "  $(rowsCollapse).toggleClass('hidden');",
+    "});"
+  ),
+  options = list(
+    dom = 'Bfrtip',  # adds button toolbar
+    buttons = list(
+      'csv'
+    ),
+    initComplete = JS("function(settings, json) {
+                         $('body').css({'font-family': 'Times Roman'});
+                       }"),
+    rowGroup = list(dataSrc = 1),
+    keys = TRUE,
+    searchHighlight = TRUE,
+    pageLength = 20,
+    columnDefs = list(list(className = 'dt-center', targets = "_all"))
+  )
+) %>%
+  formatRound(columns = c(3:5), digits = 3)
 
 Int.DE.Table
 # Display the interactive table.
@@ -316,7 +325,95 @@ DT::datatable(apply((Fishers.gost.table %>%
                                      "Evidence Codes" = evidence_codes,
                                      Intersection = intersection)),2,as.character),
                               extensions = c('KeyTable', 'FixedHeader', 'Buttons', 'FixedColumns','Responsive'),
-              options = list(
+              options = list(dom = 'Bfrtip',  # adds button toolbar
+    buttons = list(
+      'csv'
+    ),
+                initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                dom = 'Bfrtip',
+                buttons = list(list(extend = 'colvis')),
+                fixedColumns = list(leftColumns = 2),
+                scrollX = TRUE,
+                fixedHeader = TRUE,
+                columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                keys = TRUE,
+                searchHighlight = TRUE,
+                pageLength = 20))
+```
+
+<br>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 5 The interactive table includes the fisher’s exact test Kyoto Encylopedia of Genes and Genomes ontology enrichment results with the comparison, false discovery rate corrected p. value (FDR), term ID, gene ratio, background ratio, rich factor, fold enrichment, and description. Term ID refers to the numerical code for the term name.</span>
+```{r - DE KEGG Table}
+DT::datatable(apply((kegg_all_results$KO_Enrichment %>%
+                       mutate(Direction = case_when(
+                         grepl("Up", comparison, ignore.case = TRUE) ~ "Up",
+                         grepl("Down", comparison, ignore.case = TRUE) ~ "Down",
+                         TRUE ~ NA_character_
+                         ),
+                         comparison = sub("^(([^_]+)_([^_]+))_.*", "\\1", comparison)) %>%
+                       dplyr::select(comparison, Direction, ID, GeneRatio, BgRatio, RichFactor,
+                                     FoldEnrichment, p.adjust, KO_Description) %>%
+                       dplyr::rename(Comparison = comparison,
+                                     "Rich Factor" = RichFactor,
+                                     "Background Ratio" = BgRatio,
+                                     "P Value" = p.adjust,
+                                     "Fold enrichment" = FoldEnrichment,
+                                     "Term ID" = ID,
+                                     "Description" = KO_Description)),2,as.character),
+                              extensions = c('KeyTable', 'FixedHeader', 'Buttons', 'FixedColumns','Responsive'),
+              options = list(dom = 'Bfrtip',  # adds button toolbar
+    buttons = list(
+      'csv'
+    ),
+                initComplete = JS("function(settings, json) 
+                                                               {",
+                                                               "$('body').css({'font-family':
+                                                               'Times Roman'});",
+                                                               "}"),
+                dom = 'Bfrtip',
+                buttons = list(list(extend = 'colvis')),
+                fixedColumns = list(leftColumns = 2),
+                scrollX = TRUE,
+                fixedHeader = TRUE,
+                columnDefs = list(list(className = 'dt-center', targets = "_all")),
+                keys = TRUE,
+                searchHighlight = TRUE,
+                pageLength = 20))
+```
+
+<br>
+<br>
+<span style = "font-weight:normal;color:#000000; font-size: 10px; font-family:Times, serif">SI Table 6 The interactive table includes the fisher’s exact test Kyoto Encylopedia of Genes and Genomes pathway enrichment results with the comparison, direction, category, subcategory, false discovery rate corrected p. value (FDR), term ID, gene ratio, background ratio, rich factor, fold enrichment, and description. Term ID refers to the numerical code for the term name.</span>
+```{r - DE KEGG Path Table}
+DT::datatable(apply((kegg_all_results$Pathway_Enrichment %>%
+                       mutate(Direction = case_when(
+                         grepl("Up", comparison, ignore.case = TRUE) ~ "Up",
+                         grepl("Down", comparison, ignore.case = TRUE) ~ "Down",
+                         TRUE ~ NA_character_
+                         ),
+                         comparison = sub("^(([^_]+)_([^_]+))_.*", "\\1", comparison)) %>%
+                       dplyr::select(comparison, Direction, category, subcategory, ID,
+                                     GeneRatio, BgRatio, RichFactor,
+                                     FoldEnrichment, p.adjust, Pathway_Description) %>%
+                       dplyr::rename(Comparison = comparison,
+                                     Category = category,
+                                     SubCategory = subcategory,
+                                     "Rich Factor" = RichFactor,
+                                     "Background Ratio" = BgRatio,
+                                     "P Value" = p.adjust,
+                                     "Fold enrichment" = FoldEnrichment,
+                                     "Term ID" = ID,
+                                     "Description" = Pathway_Description)),2,as.character),
+                              extensions = c('KeyTable', 'FixedHeader', 'Buttons', 'FixedColumns','Responsive'),
+              options = list(dom = 'Bfrtip',  # adds button toolbar
+    buttons = list(
+      'csv'
+    ),
                 initComplete = JS("function(settings, json) 
                                                                {",
                                                                "$('body').css({'font-family':

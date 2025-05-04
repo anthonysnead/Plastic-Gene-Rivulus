@@ -929,3 +929,215 @@ DT::datatable(Fishers.GO.Counts,
                                              pageLength = 20))
 # Make the interactive table
 ```
+
+## KEGG 
+
+We perform a KEGG enrichment analysis separately for each comparison. 
+
+### Data for KEGG
+
+Here we make a data list for the GO enrichment analysis.
+```{r, kegg data}
+
+gff <- import("annotation.gff.gz")
+
+# Step 1: Keep only 'gene' entries
+gene_entries <- gff[gff$type == "gene"]
+
+# Step 2: Extract Entrez gene ID from the `Dbxref` column
+# It looks like this: "GeneID:108248343"
+gene_ids <- sapply(gene_entries$Dbxref, function(x) {
+  match <- str_extract(x, "GeneID:\\d+")
+  sub("GeneID:", "", match)
+})
+
+# Step 3: Extract gene symbol from the `Name` column (already cleaned)
+gene_symbols <- gene_entries$Name
+
+# Step 4: Create a clean mapping table
+gene_info <- data.frame(
+  gene_symbol = gene_symbols,
+  entrez_id = gene_ids,
+  stringsAsFactors = FALSE
+) %>%
+  filter(!is.na(entrez_id) & !is.na(gene_symbol)) %>%
+  distinct()
+
+# Add KEGG gene ID format
+gene_info$kegg_id <- paste0("kmr:", gene_info$entrez_id)
+
+# Get KO mappings from KEGG
+library(KEGGREST)
+
+kegg_gene_to_ko <- keggLink("ko", "kmr")  # kmr:EntrezID → ko:KO
+
+# Create data frame of mappings
+kegg_df <- data.frame(
+  kegg_id = names(kegg_gene_to_ko),
+  ko_id = sub("ko:", "", kegg_gene_to_ko),
+  stringsAsFactors = FALSE
+)
+
+# Join KO terms to your gene info
+gene_kegg_map <- gene_info %>%
+  left_join(kegg_df, by = "kegg_id") %>%
+  filter(!is.na(ko_id))
+
+# 1. TERM2GENE mapping
+TERM2GENE <- gene_kegg_map %>%
+  select(ko_id, gene_symbol) %>%
+  distinct()
+
+# 2. Background universe = all genes in mapping
+background_genes <- unique(gene_kegg_map$gene_symbol)
+```
+
+### ORA
+
+Here we complete an overrepresentation analysis for kegg terms. 
+
+```{r, kegg function}
+run_kegg_enrichment <- function(de_gene_lists, gene_info, TERM2GENE, background_genes) {
+  library(clusterProfiler)
+  library(dplyr)
+  library(purrr)
+  library(tidyr)
+
+  ko_results <- list()
+  pathway_results <- list()
+
+  for (name in names(de_gene_lists)) {
+    de_genes <- de_gene_lists[[name]]
+
+    # Prepare KO gene input
+    ko_genes <- intersect(de_genes, background_genes)
+
+    # Prepare Entrez gene input
+    entrez_genes <- gene_info %>%
+      filter(gene_symbol %in% de_genes) %>%
+      pull(entrez_id)
+
+    entrez_bg <- gene_info %>%
+      filter(gene_symbol %in% background_genes) %>%
+      pull(entrez_id)
+
+    # Run KO enrichment
+    if (length(ko_genes) > 0) {
+      ko_result <- enricher(
+        gene         = ko_genes,
+        universe     = background_genes,
+        TERM2GENE    = TERM2GENE,
+        pvalueCutoff = 0.05,
+        minGSSize    = 5
+      )
+      if (!is.null(ko_result) && nrow(ko_result@result) > 0) {
+        ko_df <- ko_result@result %>%
+          mutate(comparison = name)
+        ko_results[[name]] <- ko_df
+      }
+    }
+
+    # Run pathway enrichment
+    if (length(entrez_genes) > 0) {
+      path_result <- enrichKEGG(
+        gene         = entrez_genes,
+        universe     = entrez_bg,
+        organism     = "kmr",
+        keyType      = "kegg",
+        pvalueCutoff = 0.05,
+        minGSSize    = 5
+      )
+
+      if (!is.null(path_result) && nrow(path_result@result) > 0) {
+        path_df <- path_result@result %>%
+          mutate(comparison = name)
+
+        # Convert Entrez IDs to gene symbols in geneID column
+        path_df <- path_df %>%
+          rowwise() %>%
+          mutate(gene_symbols = paste(
+            na.omit(gene_info$gene_symbol[match(unlist(strsplit(geneID, "/")), gene_info$entrez_id)]),
+            collapse = "/"
+          )) %>%
+          ungroup()
+
+        pathway_results[[name]] <- path_df
+      }
+    }
+  }
+
+  # Combine results
+  ko_df <- bind_rows(ko_results)
+  pathway_df <- bind_rows(pathway_results)
+
+  return(list(
+    KO_Enrichment = ko_df,
+    Pathway_Enrichment = pathway_df
+  ))
+}
+```
+
+```{r, fun kegg}
+# Run enrichment
+kegg_all_results <- run_kegg_enrichment(
+  de_gene_lists = (list(
+    PrC_PrW_Up = rownames(F.tests$PreCold.PreWarm$Up),
+    PrC_PrW_Down = rownames(F.tests$PreCold.PreWarm$Down),
+    PrC_PoC_Up = rownames(F.tests$PreCold.PostCold$Up),
+    PrC_PoC_Down = rownames(F.tests$PreCold.PostCold$Down),
+    PoC_PoW_Up = rownames(F.tests$PostCold.PostWarm$Up),
+    PoC_PoW_Down = rownames(F.tests$PostCold.PostWarm$Down))),
+  gene_info = gene_info,
+  TERM2GENE = TERM2GENE,
+  background_genes = background_genes
+)
+
+```
+
+```{r, KO desciptions}
+library(KEGGREST)
+
+# Unique KO terms from your enrichment results
+unique_kos <- unique(kegg_all_results$KO_Enrichment$ID)
+
+# Use KEGG API to retrieve their descriptions
+ko_descriptions <- lapply(unique_kos, function(ko) {
+  entry <- tryCatch(keggGet(ko)[[1]], error = function(e) NULL)
+  if (!is.null(entry)) {
+    data.frame(ID = ko, KO_Description = entry$NAME[1], stringsAsFactors = FALSE)
+  } else {
+    data.frame(ID = ko, KO_Description = NA, stringsAsFactors = FALSE)
+  }
+})
+
+ko_desc_df <- do.call(rbind, ko_descriptions)
+
+kegg_all_results$KO_Enrichment <- dplyr::left_join(
+  kegg_all_results$KO_Enrichment,
+  ko_desc_df,
+  by = "ID"
+)
+```
+
+```{r, KP descriptions}
+library(KEGGREST)
+
+unique_paths <- unique(kegg_all_results$Pathway_Enrichment$ID)
+
+pathway_descriptions <- lapply(unique_paths, function(pid) {
+  entry <- tryCatch(keggGet(pid)[[1]], error = function(e) NULL)
+  if (!is.null(entry)) {
+    data.frame(ID = pid, Pathway_Description = entry$NAME[1], stringsAsFactors = FALSE)
+  } else {
+    data.frame(ID = pid, Pathway_Description = NA, stringsAsFactors = FALSE)
+  }
+})
+
+pathway_desc_df <- do.call(rbind, pathway_descriptions)
+
+kegg_all_results$Pathway_Enrichment <- dplyr::left_join(
+  kegg_all_results$Pathway_Enrichment,
+  pathway_desc_df,
+  by = "ID"
+)
+```
